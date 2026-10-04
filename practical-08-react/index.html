@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 8 - React.js Frontend</title>
+  <!-- React via CDN (no build step needed) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --primary: #06b6d4; --bg: #0f172a; --bg2: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .top-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; align-items: center; justify-content: space-between; }
+    .top-bar a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    header { background: linear-gradient(135deg, #0c4a6e, #164e63); padding: 50px 5% 40px; text-align: center; }
+    header .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 50px; padding: 5px 16px; font-size: 0.8rem; margin-bottom: 14px; }
+    header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+    header p { color: #67e8f9; font-size: 1rem; }
+    .hooks-bar {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+      background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px 24px; margin-top: 18px; display: inline-flex;
+    }
+    .hook-pill { background: rgba(6,182,212,0.15); border: 1px solid rgba(6,182,212,0.4); color: #67e8f9; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-family: monospace; }
+    #root { min-height: 60vh; }
+    .loading-fallback { display: flex; align-items: center; justify-content: center; padding: 80px; color: var(--muted); flex-direction: column; gap: 12px; }
+    .spin { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 24px 5%; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html">← Dashboard</a>
+  <span style="color:var(--muted);font-size:0.85rem;">Practical 8 — React.js Frontend</span>
+</div>
+
+<header>
+  <div class="badge">Practical 8</div>
+  <h1>React.js Frontend</h1>
+  <p>Component-Based Architecture &bull; Hooks &bull; Props &bull; State &bull; Conditional Rendering</p>
+  <div class="hooks-bar">
+    <span class="hook-pill">useState</span>
+    <span class="hook-pill">useEffect</span>
+    <span class="hook-pill">useMemo</span>
+    <span class="hook-pill">useContext</span>
+    <span class="hook-pill">useReducer</span>
+  </div>
+</header>
+
+<div id="root">
+  <div class="loading-fallback">
+    <div class="spin"></div>
+    <p>Loading React application...</p>
+  </div>
+</div>
+
+<footer>
+  <a href="../index.html">← Back to Dashboard</a> &mdash;
+  Practical 8: React.js Frontend | Harsh Pansuriya
+</footer>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useContext, useReducer, createContext } = React;
+
+// ─── Context ─────────────────────────────────────────────────────
+const ThemeContext = createContext();
+
+// ─── Reducer ─────────────────────────────────────────────────────
+function studentsReducer(state, action) {
+  switch (action.type) {
+    case 'ADD':    return [action.payload, ...state];
+    case 'UPDATE': return state.map(s => s.id === action.payload.id ? action.payload : s);
+    case 'DELETE': return state.filter(s => s.id !== action.id);
+    default:       return state;
+  }
+}
+
+// ─── INITIAL DATA ─────────────────────────────────────────────────
+const INIT_STUDENTS = [
+  { id:1, name:'Harsh Pansuriya', email:'harsh@example.com', course:'Computer Engineering', semester:5, marks:92 },
+  { id:2, name:'Riya Sharma',     email:'riya@example.com',  course:'Computer Engineering', semester:5, marks:85 },
+  { id:3, name:'Arjun Patel',     email:'arjun@example.com', course:'Information Technology', semester:5, marks:78 },
+  { id:4, name:'Priya Desai',     email:'priya@example.com', course:'Electronics', semester:3, marks:71 },
+  { id:5, name:'Karan Shah',      email:'karan@example.com', course:'Computer Engineering', semester:7, marks:88 },
+];
+
+// ─── HELPER ───────────────────────────────────────────────────────
+function getGrade(m) {
+  if (m >= 90) return { g:'O', color:'#4ade80' };
+  if (m >= 80) return { g:'A+', color:'#38bdf8' };
+  if (m >= 70) return { g:'A', color:'#38bdf8' };
+  if (m >= 60) return { g:'B+', color:'#fbbf24' };
+  if (m >= 50) return { g:'B', color:'#fb923c' };
+  if (m >= 40) return { g:'C', color:'#f97316' };
+  return { g:'F', color:'#f87171' };
+}
+
+// ─── NAVBAR COMPONENT ──────────────────────────────────────────────
+function Navbar({ activeTab, setActiveTab, darkMode, setDarkMode }) {
+  const tabs = ['Dashboard', 'Students', 'Add Student'];
+  return (
+    <nav style={{ background:'#1e293b', borderBottom:'1px solid #334155', padding:'0 5%', display:'flex', alignItems:'center', justifyContent:'space-between', height:'56px', flexWrap:'wrap', gap:'8px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+        <span style={{ fontSize:'1.2rem', fontWeight:800, color:'#06b6d4' }}>⚛️ ReactApp</span>
+      </div>
+      <div style={{ display:'flex', gap:'4px' }}>
+        {tabs.map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            style={{ background: activeTab===tab ? 'rgba(6,182,212,0.15)' : 'none', border: activeTab===tab ? '1px solid rgba(6,182,212,0.4)' : '1px solid transparent', color: activeTab===tab ? '#67e8f9' : '#94a3b8', padding:'6px 14px', borderRadius:'8px', cursor:'pointer', fontSize:'0.85rem', fontWeight:600 }}>
+            {tab}
+          </button>
+        ))}
+      </div>
+      <button onClick={() => setDarkMode(!darkMode)}
+        style={{ background:'rgba(6,182,212,0.1)', border:'1px solid rgba(6,182,212,0.3)', color:'#67e8f9', padding:'6px 14px', borderRadius:'8px', cursor:'pointer', fontSize:'0.8rem' }}>
+        {darkMode ? '☀️ Light' : '🌙 Dark'}
+      </button>
+    </nav>
+  );
+}
+
+// ─── SEARCH BAR COMPONENT ──────────────────────────────────────────
+function SearchBar({ value, onChange }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'#0f172a', border:'1px solid #334155', borderRadius:'10px', padding:'10px 16px', flex:1, maxWidth:'400px' }}>
+      <span>🔍</span>
+      <input value={value} onChange={e => onChange(e.target.value)} placeholder="Search students..." style={{ background:'none', border:'none', color:'#e2e8f0', fontSize:'0.9rem', width:'100%', outline:'none' }} />
+    </div>
+  );
+}
+
+// ─── STUDENT CARD COMPONENT ────────────────────────────────────────
+function StudentCard({ student, onEdit, onDelete }) {
+  const { g, color } = getGrade(student.marks);
+  return (
+    <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'22px', transition:'transform 0.2s, border-color 0.2s' }}
+      onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.borderColor='#06b6d4'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.borderColor='#334155'; }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'14px' }}>
+        <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'linear-gradient(135deg,#06b6d4,#0284c7)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'1rem' }}>
+          {student.name.charAt(0)}
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontWeight:700, fontSize:'0.95rem' }}>{student.name}</div>
+          <div style={{ color:'#94a3b8', fontSize:'0.78rem' }}>{student.email}</div>
+        </div>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:'1.4rem', fontWeight:800, color }}>{g}</div>
+          <div style={{ fontSize:'0.7rem', color:'#94a3b8' }}>Grade</div>
+        </div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'16px' }}>
+        {[
+          ['Course', student.course],
+          ['Semester', `Sem ${student.semester}`],
+          ['Marks', student.marks + ' / 100'],
+          ['Status', student.marks >= 40 ? 'Pass' : 'Fail'],
+        ].map(([k,v]) => (
+          <div key={k} style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'8px 12px' }}>
+            <div style={{ fontSize:'0.7rem', color:'#94a3b8', marginBottom:'2px' }}>{k}</div>
+            <div style={{ fontSize:'0.85rem', fontWeight:600, color: k==='Status' ? (student.marks>=40?'#4ade80':'#f87171') : '#e2e8f0' }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display:'flex', gap:'8px' }}>
+        <button onClick={() => onEdit(student)} style={{ flex:1, background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#fbbf24', padding:'7px', borderRadius:'7px', cursor:'pointer', fontSize:'0.82rem', fontWeight:600 }}>Edit</button>
+        <button onClick={() => onDelete(student.id)} style={{ flex:1, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#f87171', padding:'7px', borderRadius:'7px', cursor:'pointer', fontSize:'0.82rem', fontWeight:600 }}>Delete</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── STUDENT LIST COMPONENT ────────────────────────────────────────
+function StudentList({ students, onEdit, onDelete }) {
+  if (students.length === 0) {
+    return (
+      <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8' }}>
+        <div style={{ fontSize:'3rem', marginBottom:'16px' }}>🎓</div>
+        <p>No students found. Try adjusting your search.</p>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:'18px' }}>
+      {students.map((s, i) => (
+        <div key={s.id} style={{ animation:`fadeIn 0.3s ease ${i*0.05}s both` }}>
+          <StudentCard student={s} onEdit={onEdit} onDelete={onDelete} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── STUDENT FORM COMPONENT ────────────────────────────────────────
+function StudentForm({ initial, onSave, onCancel }) {
+  const [form, setForm] = useState(initial || { name:'', email:'', course:'Computer Engineering', semester:5, marks:'' });
+  const [errors, setErrors] = useState({});
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = 'Name is required';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'Valid email required';
+    if (form.marks === '' || isNaN(form.marks) || form.marks < 0 || form.marks > 100) e.marks = 'Marks must be 0–100';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (validate()) onSave({ ...form, marks: parseInt(form.marks), semester: parseInt(form.semester) });
+  };
+
+  const inputStyle = (field) => ({
+    width:'100%', background:'#0f172a', border:`1px solid ${errors[field]?'#ef4444':'#334155'}`, borderRadius:'8px',
+    padding:'10px 14px', color:'#e2e8f0', fontSize:'0.9rem', outline:'none', transition:'border-color 0.2s'
+  });
+  const labelStyle = { display:'block', fontSize:'0.82rem', color:'#94a3b8', marginBottom:'6px' };
+
+  return (
+    <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'16px', padding:'32px', maxWidth:'500px', margin:'0 auto' }}>
+      <h3 style={{ marginBottom:'20px', fontSize:'1.2rem' }}>{initial?.id ? 'Edit Student' : 'Add New Student'}</h3>
+      <form onSubmit={handleSubmit}>
+        {[
+          { field:'name', label:'Full Name *', type:'text', ph:'Harsh Pansuriya' },
+          { field:'email', label:'Email Address *', type:'email', ph:'harsh@example.com' },
+        ].map(({ field, label, type, ph }) => (
+          <div key={field} style={{ marginBottom:'16px' }}>
+            <label style={labelStyle}>{label}</label>
+            <input type={type} value={form[field]} onChange={e=>set(field,e.target.value)} placeholder={ph} style={inputStyle(field)} />
+            {errors[field] && <div style={{ color:'#f87171', fontSize:'0.78rem', marginTop:'4px' }}>{errors[field]}</div>}
+          </div>
+        ))}
+        <div style={{ marginBottom:'16px' }}>
+          <label style={labelStyle}>Course</label>
+          <select value={form.course} onChange={e=>set('course',e.target.value)} style={{ ...inputStyle(), border:'1px solid #334155' }}>
+            {['Computer Engineering','Information Technology','Electronics','Mechanical Engineering'].map(c=><option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px', marginBottom:'24px' }}>
+          <div>
+            <label style={labelStyle}>Semester</label>
+            <input type="number" min={1} max={8} value={form.semester} onChange={e=>set('semester',e.target.value)} style={inputStyle()} />
+          </div>
+          <div>
+            <label style={labelStyle}>Marks (0–100) *</label>
+            <input type="number" min={0} max={100} value={form.marks} onChange={e=>set('marks',e.target.value)} placeholder="85" style={inputStyle('marks')} />
+            {errors.marks && <div style={{ color:'#f87171', fontSize:'0.78rem', marginTop:'4px' }}>{errors.marks}</div>}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:'10px' }}>
+          <button type="submit" style={{ flex:1, background:'linear-gradient(135deg,#06b6d4,#0284c7)', color:'#fff', border:'none', padding:'11px', borderRadius:'8px', cursor:'pointer', fontWeight:700, fontSize:'0.95rem' }}>
+            {initial?.id ? 'Update Student' : 'Add Student'}
+          </button>
+          {onCancel && <button type="button" onClick={onCancel} style={{ background:'#0f172a', border:'1px solid #334155', color:'#e2e8f0', padding:'11px 18px', borderRadius:'8px', cursor:'pointer' }}>Cancel</button>}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ─── DASHBOARD COMPONENT ──────────────────────────────────────────
+function Dashboard({ students }) {
+  const stats = useMemo(() => ({
+    total: students.length,
+    avg: students.length ? Math.round(students.reduce((a,s)=>a+s.marks,0)/students.length) : 0,
+    highest: students.length ? Math.max(...students.map(s=>s.marks)) : 0,
+    passing: students.filter(s=>s.marks>=40).length,
+  }), [students]);
+
+  const byCourse = useMemo(() => {
+    const map = {};
+    students.forEach(s => { map[s.course] = (map[s.course]||0) + 1; });
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+  }, [students]);
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'1100px', margin:'0 auto' }}>
+      <h2 style={{ fontSize:'1.4rem', marginBottom:'24px' }}>📊 Dashboard</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'16px', marginBottom:'32px' }}>
+        {[
+          { label:'Total Students', value:stats.total, color:'#06b6d4', icon:'🎓' },
+          { label:'Average Marks', value:stats.avg, color:'#a78bfa', icon:'📈' },
+          { label:'Highest Marks', value:stats.highest, color:'#34d399', icon:'🏆' },
+          { label:'Passing Students', value:stats.passing, color:'#fbbf24', icon:'✅' },
+        ].map(s => (
+          <div key={s.label} style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'22px', textAlign:'center' }}>
+            <div style={{ fontSize:'1.8rem', marginBottom:'8px' }}>{s.icon}</div>
+            <div style={{ fontSize:'2rem', fontWeight:800, color:s.color }}>{s.value}</div>
+            <div style={{ fontSize:'0.8rem', color:'#94a3b8', marginTop:'4px' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' }}>
+        <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px' }}>
+          <h3 style={{ marginBottom:'16px', fontSize:'1rem' }}>Students by Course</h3>
+          {byCourse.map(([course, count]) => (
+            <div key={course} style={{ marginBottom:'12px' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'5px', fontSize:'0.85rem' }}>
+                <span>{course}</span><span style={{ color:'#06b6d4', fontWeight:700 }}>{count}</span>
+              </div>
+              <div style={{ height:'6px', background:'#334155', borderRadius:'3px', overflow:'hidden' }}>
+                <div style={{ height:'100%', borderRadius:'3px', background:'linear-gradient(90deg,#06b6d4,#0284c7)', width:`${(count/students.length*100)||0}%`, transition:'width 0.5s' }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px' }}>
+          <h3 style={{ marginBottom:'16px', fontSize:'1rem' }}>Grade Distribution</h3>
+          {[['O (90+)','#4ade80',s=>s.marks>=90],['A+/A (70-89)','#38bdf8',s=>s.marks>=70&&s.marks<90],['B (50-69)','#fbbf24',s=>s.marks>=50&&s.marks<70],['C/F (<50)','#f87171',s=>s.marks<50]].map(([label,color,fn])=>{
+            const cnt = students.filter(fn).length;
+            return (
+              <div key={label} style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'10px' }}>
+                <div style={{ width:'12px', height:'12px', borderRadius:'3px', background:color, flexShrink:0 }}></div>
+                <span style={{ flex:1, fontSize:'0.85rem' }}>{label}</span>
+                <span style={{ color, fontWeight:700, fontSize:'0.85rem' }}>{cnt}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MODAL COMPONENT ──────────────────────────────────────────────
+function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+      <div onClick={e=>e.stopPropagation()} style={{ width:'100%', maxWidth:'540px', maxHeight:'90vh', overflowY:'auto' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── TOAST COMPONENT ──────────────────────────────────────────────
+function Toast({ message, type, visible }) {
+  return (
+    <div style={{
+      position:'fixed', bottom:'24px', right:'24px', zIndex:2000,
+      background:'#1e293b', border:`1px solid ${type==='ok'?'rgba(34,197,94,0.5)':'rgba(239,68,68,0.5)'}`,
+      borderRadius:'12px', padding:'14px 20px', display:'flex', gap:'10px', alignItems:'center',
+      transform: visible ? 'translateY(0)' : 'translateY(100px)',
+      opacity: visible ? 1 : 0, transition:'all 0.3s ease', maxWidth:'320px'
+    }}>
+      <span>{type==='ok' ? '✓' : '✗'}</span>
+      <span style={{ fontSize:'0.9rem' }}>{message}</span>
+    </div>
+  );
+}
+
+// ─── FOOTER COMPONENT ──────────────────────────────────────────────
+function Footer() {
+  return (
+    <footer style={{ background:'#1e293b', borderTop:'1px solid #334155', padding:'24px 5%', textAlign:'center', color:'#94a3b8', fontSize:'0.85rem' }}>
+      <a href="../index.html" style={{ color:'#06b6d4', textDecoration:'none' }}>← Back to Dashboard</a> —
+      Practical 8: React.js | Harsh Pansuriya
+    </footer>
+  );
+}
+
+// ─── ROOT APP ──────────────────────────────────────────────────────
+function App() {
+  const [students, dispatch] = useReducer(studentsReducer, INIT_STUDENTS);
+  const [activeTab, setActiveTab] = useState('Dashboard');
+  const [search, setSearch] = useState('');
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [darkMode, setDarkMode] = useState(true);
+  const [toast, setToast] = useState({ visible:false, message:'', type:'ok' });
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const showToast = (msg, type='ok') => {
+    setToast({ visible:true, message:msg, type });
+    setTimeout(() => setToast(t => ({ ...t, visible:false })), 3000);
+  };
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return students.filter(s => !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || s.course.toLowerCase().includes(q));
+  }, [students, search]);
+
+  const handleAdd = (data) => {
+    dispatch({ type:'ADD', payload: { ...data, id: Date.now() } });
+    setActiveTab('Students');
+    showToast('Student added successfully!', 'ok');
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    setModalOpen(true);
+  };
+
+  const handleUpdate = (data) => {
+    dispatch({ type:'UPDATE', payload: { ...data, id: editingStudent.id } });
+    setModalOpen(false);
+    setEditingStudent(null);
+    showToast('Student updated!', 'ok');
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm('Delete this student?')) {
+      dispatch({ type:'DELETE', id });
+      showToast('Student deleted.', 'ok');
+    }
+  };
+
+  return (
+    <ThemeContext.Provider value={{ darkMode }}>
+      <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} darkMode={darkMode} setDarkMode={setDarkMode} />
+
+      {activeTab === 'Dashboard' && <Dashboard students={students} />}
+
+      {activeTab === 'Students' && (
+        <div style={{ padding:'32px 5%', maxWidth:'1200px', margin:'0 auto' }}>
+          <div style={{ display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap', marginBottom:'24px' }}>
+            <h2 style={{ fontSize:'1.4rem', flex:1 }}>Students ({filtered.length})</h2>
+            <SearchBar value={search} onChange={setSearch} />
+            <button onClick={() => setActiveTab('Add Student')} style={{ background:'linear-gradient(135deg,#06b6d4,#0284c7)', color:'#fff', border:'none', padding:'10px 20px', borderRadius:'8px', cursor:'pointer', fontWeight:600 }}>
+              + Add Student
+            </button>
+          </div>
+          <StudentList students={filtered} onEdit={handleEdit} onDelete={handleDelete} />
+        </div>
+      )}
+
+      {activeTab === 'Add Student' && (
+        <div style={{ padding:'32px 5%' }}>
+          <StudentForm onSave={handleAdd} onCancel={() => setActiveTab('Students')} />
+        </div>
+      )}
+
+      <div style={{ padding:'20px 5%', maxWidth:'1100px', margin:'0 auto' }}>
+        <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px' }}>
+          <h3 style={{ fontSize:'1rem', color:'#06b6d4', marginBottom:'16px' }}>⚛️ React Concepts Used in This Practical</h3>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'12px' }}>
+            {[
+              ['useState', 'Local component state for form data, active tab, toast visibility'],
+              ['useEffect', 'Would be used to fetch data from API on mount'],
+              ['useMemo', 'Memoizes filtered students and statistics for performance'],
+              ['useContext', 'ThemeContext provides dark/light mode to all components'],
+              ['useReducer', 'Manages students array with ADD/UPDATE/DELETE actions'],
+            ].map(([hook, desc]) => (
+              <div key={hook} style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'10px', padding:'14px' }}>
+                <div style={{ fontFamily:'monospace', color:'#67e8f9', fontSize:'0.85rem', marginBottom:'6px' }}>{hook}()</div>
+                <div style={{ fontSize:'0.78rem', color:'#94a3b8', lineHeight:'1.5' }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <StudentForm initial={editingStudent} onSave={handleUpdate} onCancel={() => setModalOpen(false)} />
+      </Modal>
+
+      <Toast message={toast.message} type={toast.type} visible={toast.visible} />
+      <Footer />
+    </ThemeContext.Provider>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

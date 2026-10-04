@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 9 - Frontend + Backend Integration</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --primary: #f97316; --bg: #0f172a; --bg2: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .top-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; align-items: center; justify-content: space-between; }
+    .top-bar a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    header { background: linear-gradient(135deg, #431407, #9a3412); padding: 50px 5% 40px; text-align: center; }
+    header .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 50px; padding: 5px 16px; font-size: 0.8rem; margin-bottom: 14px; }
+    header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+    header p { color: #fed7aa; font-size: 1rem; }
+    .arch-diagram {
+      display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+      background: rgba(0,0,0,0.2); border-radius: 12px; padding: 14px 24px; margin-top: 18px;
+    }
+    .arch-box { background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4); color: #fed7aa; padding: 6px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; }
+    .arch-arrow { color: #94a3b8; font-size: 1rem; }
+    #root { min-height: 60vh; }
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 24px 5%; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--primary); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html">← Dashboard</a>
+  <span style="color:var(--muted);font-size:0.85rem;">Practical 9 — Frontend + Backend Integration</span>
+</div>
+
+<header>
+  <div class="badge">Practical 9</div>
+  <h1>Frontend + Backend Integration</h1>
+  <p>React ↔ Express REST API &bull; CORS &bull; Env Config &bull; Error States &bull; Loading States</p>
+  <div class="arch-diagram">
+    <span class="arch-box">⚛️ React Frontend</span>
+    <span class="arch-arrow">→ HTTP/REST →</span>
+    <span class="arch-box">🟢 Node.js + Express</span>
+    <span class="arch-arrow">→ Mongoose →</span>
+    <span class="arch-box">🍃 MongoDB</span>
+  </div>
+</header>
+
+<div id="root"></div>
+
+<footer>
+  <a href="../index.html">← Back to Dashboard</a> &mdash;
+  Practical 9: Frontend + Backend Integration | Harsh Pansuriya
+</footer>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+// ─── CONFIG ───────────────────────────────────────────────────────
+// In production: read from process.env.REACT_APP_API_URL
+// For this demo: use mock API
+const API_BASE = window.REACT_APP_API_URL || 'MOCK';
+
+// ─── MOCK API (simulates real HTTP calls with delay) ───────────────
+const mockDB = [
+  { _id:'1', name:'Harsh Pansuriya', email:'harsh@example.com', course:'Computer Engineering', semester:5, marks:92 },
+  { _id:'2', name:'Riya Sharma',     email:'riya@example.com',  course:'Computer Engineering', semester:5, marks:85 },
+  { _id:'3', name:'Arjun Patel',     email:'arjun@example.com', course:'Information Technology', semester:5, marks:78 },
+  { _id:'4', name:'Priya Desai',     email:'priya@example.com', course:'Electronics', semester:3, marks:71 },
+  { _id:'5', name:'Karan Shah',      email:'karan@example.com', course:'Computer Engineering', semester:7, marks:88 },
+];
+let db = [...mockDB];
+const wait = ms => new Promise(r => setTimeout(r, ms));
+
+const mockApi = {
+  getAll: async () => { await wait(400 + Math.random()*300); return { success:true, data:[...db] }; },
+  getOne: async (id) => { await wait(200); const s = db.find(x=>x._id===id); return s ? {success:true,data:s} : {success:false,message:'Not found'}; },
+  create: async (body) => { await wait(350); const s={...body,_id:Date.now().toString()}; db.unshift(s); return {success:true,data:s}; },
+  update: async (id,body) => { await wait(300); const i=db.findIndex(x=>x._id===id); if(i===-1)return{success:false,message:'Not found'}; db[i]={...db[i],...body}; return{success:true,data:db[i]}; },
+  delete: async (id) => { await wait(250); const i=db.findIndex(x=>x._id===id); if(i===-1)return{success:false,message:'Not found'}; db.splice(i,1); return{success:true,message:'Deleted'}; },
+};
+
+// ─── API SERVICE (real fetch calls, falls back to mock) ────────────
+const api = {
+  async call(method, path, body=null) {
+    if (API_BASE === 'MOCK') {
+      const id = path.split('/').pop();
+      if (method==='GET' && path.endsWith('/students')) return mockApi.getAll();
+      if (method==='GET') return mockApi.getOne(id);
+      if (method==='POST') return mockApi.create(body);
+      if (method==='PUT') return mockApi.update(id, body);
+      if (method==='DELETE') return mockApi.delete(id);
+    }
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  },
+  getStudents:   ()       => api.call('GET',    '/api/students'),
+  createStudent: (body)   => api.call('POST',   '/api/students', body),
+  updateStudent: (id,body)=> api.call('PUT',    `/api/students/${id}`, body),
+  deleteStudent: (id)     => api.call('DELETE',  `/api/students/${id}`),
+};
+
+// ─── COMPONENTS ───────────────────────────────────────────────────
+const s = {
+  card: { background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px', marginBottom:'20px' },
+  input: { width:'100%', background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'10px 14px', color:'#e2e8f0', fontSize:'0.9rem', outline:'none', transition:'border-color 0.2s', fontFamily:'inherit' },
+  label: { display:'block', fontSize:'0.82rem', color:'#94a3b8', marginBottom:'6px' },
+  btn: (c) => ({ background:`linear-gradient(135deg,${c})`, color:'#fff', border:'none', padding:'10px 22px', borderRadius:'8px', cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'opacity 0.2s' }),
+};
+
+function NetworkIndicator({ mode, callCount }) {
+  return (
+    <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'12px', padding:'14px 20px', marginBottom:'20px', display:'flex', alignItems:'center', gap:'12px', flexWrap:'wrap' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+        <div style={{ width:'8px', height:'8px', borderRadius:'50%', background: mode==='mock'?'#fbbf24':'#22c55e', boxShadow:`0 0 0 3px ${mode==='mock'?'rgba(251,191,36,0.2)':'rgba(34,197,94,0.2)'}` }}></div>
+        <span style={{ fontSize:'0.85rem', color:'#e2e8f0' }}>{mode==='mock' ? '🔄 Mock API (Demo Mode)' : '🌐 Live API: ' + API_BASE}</span>
+      </div>
+      <span style={{ background:'rgba(249,115,22,0.1)', border:'1px solid rgba(249,115,22,0.3)', color:'#fb923c', padding:'3px 10px', borderRadius:'6px', fontSize:'0.75rem', marginLeft:'auto' }}>
+        API Calls: {callCount}
+      </span>
+      <span style={{ fontSize:'0.75rem', color:'#64748b' }}>CORS configured • JSON responses • Error handling active</span>
+    </div>
+  );
+}
+
+function ApiLog({ log }) {
+  return (
+    <div style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'10px', padding:'14px', height:'160px', overflowY:'auto', fontFamily:'monospace', fontSize:'0.78rem' }}>
+      {log.length === 0 && <div style={{ color:'#475569' }}>// API request log will appear here...</div>}
+      {log.map((entry, i) => (
+        <div key={i} style={{ color: entry.type==='req'?'#38bdf8':entry.type==='ok'?'#4ade80':'#f87171', borderBottom:'1px solid rgba(51,65,85,0.3)', padding:'3px 0' }}>
+          {entry.msg}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StudentRow({ student, onEdit, onDelete, deleting }) {
+  return (
+    <tr style={{ borderBottom:'1px solid rgba(51,65,85,0.4)' }}>
+      <td style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:'10px' }}>
+        <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'linear-gradient(135deg,#f97316,#ea580c)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.85rem', flexShrink:0 }}>
+          {student.name.charAt(0)}
+        </div>
+        {student.name}
+      </td>
+      <td style={{ padding:'12px 16px', color:'#94a3b8', fontSize:'0.85rem' }}>{student.email}</td>
+      <td style={{ padding:'12px 16px', fontSize:'0.85rem' }}>{student.course}</td>
+      <td style={{ padding:'12px 16px', textAlign:'center', fontWeight:700, color: student.marks>=75?'#4ade80':student.marks>=50?'#fbbf24':'#f87171' }}>{student.marks}</td>
+      <td style={{ padding:'12px 16px' }}>
+        <div style={{ display:'flex', gap:'6px' }}>
+          <button onClick={() => onEdit(student)} style={{ background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#fbbf24', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.78rem' }}>Edit</button>
+          <button onClick={() => onDelete(student._id)} disabled={deleting===student._id}
+            style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#f87171', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.78rem', opacity: deleting===student._id?0.5:1 }}>
+            {deleting===student._id ? '...' : 'Delete'}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function App() {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [form, setForm] = useState({ name:'', email:'', course:'Computer Engineering', semester:5, marks:'' });
+  const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState('');
+  const [deleting, setDeleting] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [apiLog, setApiLog] = useState([]);
+  const [callCount, setCallCount] = useState(0);
+
+  const addLog = useCallback((msg, type) => {
+    setApiLog(prev => [...prev.slice(-20), { msg, type }]);
+    if (type === 'req') setCallCount(c => c+1);
+  }, []);
+
+  const showToast = (msg, ok=true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const loadStudents = useCallback(async () => {
+    setLoading(true); setError(null);
+    addLog('→ GET /api/students', 'req');
+    try {
+      const res = await api.getStudents();
+      setStudents(res.data || []);
+      addLog(`✓ 200 OK — ${res.data.length} students`, 'ok');
+    } catch (e) {
+      setError(e.message);
+      addLog(`✗ Error: ${e.message}`, 'err');
+    } finally { setLoading(false); }
+  }, [addLog]);
+
+  useEffect(() => { loadStudents(); }, [loadStudents]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || form.marks === '') return;
+    setSaving(true);
+    const body = { ...form, marks: parseInt(form.marks), semester: parseInt(form.semester) };
+    try {
+      if (editing) {
+        addLog(`→ PUT /api/students/${editing._id}`, 'req');
+        const res = await api.updateStudent(editing._id, body);
+        setStudents(prev => prev.map(s => s._id === editing._id ? res.data : s));
+        addLog(`✓ 200 OK — student updated`, 'ok');
+        showToast('Student updated!');
+        setEditing(null);
+      } else {
+        addLog(`→ POST /api/students`, 'req');
+        const res = await api.createStudent(body);
+        setStudents(prev => [res.data, ...prev]);
+        addLog(`✓ 201 Created — id: ${res.data._id}`, 'ok');
+        showToast('Student added!');
+      }
+      setForm({ name:'', email:'', course:'Computer Engineering', semester:5, marks:'' });
+    } catch (e) {
+      addLog(`✗ Error: ${e.message}`, 'err');
+      showToast(e.message, false);
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this student?')) return;
+    setDeleting(id);
+    addLog(`→ DELETE /api/students/${id}`, 'req');
+    try {
+      await api.deleteStudent(id);
+      setStudents(prev => prev.filter(s => s._id !== id));
+      addLog(`✓ 200 OK — deleted`, 'ok');
+      showToast('Student deleted.');
+    } catch (e) {
+      addLog(`✗ Error: ${e.message}`, 'err');
+    } finally { setDeleting(null); }
+  };
+
+  const startEdit = (s) => {
+    setEditing(s);
+    setForm({ name:s.name, email:s.email, course:s.course, semester:s.semester, marks:s.marks });
+    window.scrollTo({ top: document.querySelector('#form-section').offsetTop - 20, behavior:'smooth' });
+  };
+
+  const filtered = students.filter(s => {
+    const q = search.toLowerCase();
+    return !q || s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
+  });
+
+  return (
+    <div style={{ maxWidth:'1100px', margin:'0 auto', padding:'32px 20px' }}>
+      <NetworkIndicator mode="mock" callCount={callCount} />
+
+      <div style={{ display:'grid', gridTemplateColumns:'360px 1fr', gap:'24px' }}>
+        {/* FORM PANEL */}
+        <div id="form-section">
+          <div style={s.card}>
+            <h3 style={{ fontSize:'1rem', marginBottom:'16px', color: editing ? '#fbbf24' : '#f97316' }}>
+              {editing ? '✏️ Edit Student' : '➕ Add Student'}
+            </h3>
+            <form onSubmit={handleSubmit}>
+              {[
+                { key:'name', label:'Full Name *', type:'text', ph:'Harsh Pansuriya' },
+                { key:'email', label:'Email *', type:'email', ph:'harsh@example.com' },
+              ].map(({key,label,type,ph}) => (
+                <div key={key} style={{ marginBottom:'14px' }}>
+                  <label style={s.label}>{label}</label>
+                  <input type={type} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={ph} required style={s.input} />
+                </div>
+              ))}
+              <div style={{ marginBottom:'14px' }}>
+                <label style={s.label}>Course</label>
+                <select value={form.course} onChange={e=>setForm(f=>({...f,course:e.target.value}))} style={{ ...s.input, background:'#0f172a' }}>
+                  {['Computer Engineering','Information Technology','Electronics','Mechanical Engineering'].map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'20px' }}>
+                <div>
+                  <label style={s.label}>Semester</label>
+                  <input type="number" min={1} max={8} value={form.semester} onChange={e=>setForm(f=>({...f,semester:e.target.value}))} style={s.input} />
+                </div>
+                <div>
+                  <label style={s.label}>Marks *</label>
+                  <input type="number" min={0} max={100} value={form.marks} onChange={e=>setForm(f=>({...f,marks:e.target.value}))} required style={s.input} placeholder="85" />
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:'8px' }}>
+                <button type="submit" disabled={saving} style={{ ...s.btn(editing?'#f59e0b,#d97706':'#f97316,#ea580c'), flex:1, opacity:saving?0.7:1 }}>
+                  {saving ? 'Saving...' : (editing ? 'Update' : 'Add Student')}
+                </button>
+                {editing && <button type="button" onClick={()=>{setEditing(null);setForm({name:'',email:'',course:'Computer Engineering',semester:5,marks:''});}} style={{ background:'#0f172a', border:'1px solid #334155', color:'#e2e8f0', padding:'10px 14px', borderRadius:'8px', cursor:'pointer' }}>Cancel</button>}
+              </div>
+            </form>
+          </div>
+
+          <div style={s.card}>
+            <h3 style={{ fontSize:'0.95rem', color:'#f97316', marginBottom:'12px' }}>API Request Log</h3>
+            <ApiLog log={apiLog} />
+            <button onClick={loadStudents} style={{ marginTop:'10px', width:'100%', background:'rgba(249,115,22,0.1)', border:'1px solid rgba(249,115,22,0.3)', color:'#fb923c', padding:'8px', borderRadius:'8px', cursor:'pointer', fontSize:'0.85rem' }}>
+              ↻ Refresh Students
+            </button>
+          </div>
+        </div>
+
+        {/* TABLE PANEL */}
+        <div>
+          <div style={{ display:'flex', gap:'12px', alignItems:'center', marginBottom:'16px', flexWrap:'wrap' }}>
+            <h3 style={{ fontSize:'1rem', flex:1 }}>Students ({filtered.length})</h3>
+            <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'#1e293b', border:'1px solid #334155', borderRadius:'8px', padding:'8px 14px' }}>
+              <span style={{ color:'#94a3b8' }}>🔍</span>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{ background:'none', border:'none', color:'#e2e8f0', fontSize:'0.9rem', outline:'none', width:'160px' }} />
+            </div>
+          </div>
+
+          {loading && (
+            <div style={{ textAlign:'center', padding:'60px', color:'#94a3b8' }}>
+              <div style={{ width:'36px', height:'36px', border:'3px solid #334155', borderTopColor:'#f97316', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 16px' }}></div>
+              <p>Loading students from API...</p>
+            </div>
+          )}
+          {error && !loading && (
+            <div style={{ background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.3)', borderRadius:'12px', padding:'24px', textAlign:'center', color:'#f87171' }}>
+              <div style={{ fontSize:'2rem', marginBottom:'10px' }}>⚠️</div>
+              <p>{error}</p>
+              <button onClick={loadStudents} style={{ marginTop:'12px', ...s.btn('#f97316,#ea580c'), fontSize:'0.85rem' }}>Retry</button>
+            </div>
+          )}
+          {!loading && !error && (
+            <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', overflow:'hidden' }}>
+              <div style={{ overflowX:'auto' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <thead>
+                    <tr style={{ background:'#0f172a' }}>
+                      {['Student','Email','Course','Marks','Actions'].map(h=>(
+                        <th key={h} style={{ padding:'12px 16px', textAlign:'left', fontSize:'0.78rem', textTransform:'uppercase', letterSpacing:'1px', color:'#94a3b8', borderBottom:'1px solid #334155' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr><td colSpan={5} style={{ textAlign:'center', padding:'50px', color:'#94a3b8' }}>No students found.</td></tr>
+                    ) : filtered.map(student => (
+                      <StudentRow key={student._id} student={student} onEdit={startEdit} onDelete={handleDelete} deleting={deleting} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Architecture note */}
+          <div style={{ ...s.card, marginTop:'20px', fontSize:'0.85rem' }}>
+            <h3 style={{ color:'#f97316', marginBottom:'12px', fontSize:'0.95rem' }}>Architecture Notes</h3>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px' }}>
+              {[
+                ['CORS', 'Express cors() middleware allows React (port 3000) to call API (port 3001)'],
+                ['API Base URL', 'Stored in .env as REACT_APP_API_URL — never hardcoded'],
+                ['Error Handling', 'try/catch in every API call, displayed to user with retry option'],
+                ['Loading States', 'Spinner shown during fetch, buttons disabled while saving'],
+              ].map(([k,v]) => (
+                <div key={k} style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'12px' }}>
+                  <div style={{ color:'#f97316', fontSize:'0.75rem', marginBottom:'4px' }}>{k}</div>
+                  <div style={{ color:'#94a3b8', fontSize:'0.78rem', lineHeight:'1.5' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {toast && (
+        <div style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:2000, background:'#1e293b', border:`1px solid ${toast.ok?'rgba(34,197,94,0.4)':'rgba(239,68,68,0.4)'}`, borderRadius:'12px', padding:'14px 20px', display:'flex', gap:'10px', alignItems:'center' }}>
+          <span>{toast.ok ? '✓' : '✗'}</span>
+          <span>{toast.msg}</span>
+        </div>
+      )}
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>

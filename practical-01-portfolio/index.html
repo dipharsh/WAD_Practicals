@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 1 - Responsive Portfolio | Harsh Pansuriya</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --bg: #0f172a;
+      --bg2: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 1000;
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .logo { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--muted); font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+    .hamburger span { display: block; width: 24px; height: 2px; background: var(--text); border-radius: 2px; transition: all 0.3s; }
+    #menu-toggle { display: none; }
+    #menu-toggle:checked ~ .nav-links { display: flex; flex-direction: column; position: absolute; top: 64px; left: 0; right: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 20px; gap: 16px; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      padding: 80px 5% 40px;
+      background: radial-gradient(ellipse at 70% 50%, rgba(99,102,241,0.12) 0%, transparent 60%);
+    }
+    .hero-content { max-width: 650px; }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.4);
+      border-radius: 50px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      color: #a5b4fc;
+      margin-bottom: 24px;
+    }
+    .hero h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+    .hero h1 span { background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .hero p { color: var(--muted); font-size: 1.1rem; line-height: 1.7; margin-bottom: 32px; }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff; padding: 12px 28px; border-radius: 8px;
+      text-decoration: none; font-weight: 600; transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-outline {
+      border: 1px solid var(--border); color: var(--text);
+      padding: 12px 28px; border-radius: 8px;
+      text-decoration: none; font-weight: 600; transition: border-color 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--primary); }
+    .hero-stats { display: flex; gap: 32px; margin-top: 48px; flex-wrap: wrap; }
+    .hero-stat .num { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+    .hero-stat .lbl { font-size: 0.8rem; color: var(--muted); }
+
+    /* SECTION */
+    section { padding: 80px 5%; }
+    .section-header { text-align: center; margin-bottom: 60px; }
+    .section-header .tag {
+      display: inline-block;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      font-size: 0.75rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 50px;
+      margin-bottom: 12px;
+    }
+    .section-header h2 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
+    .section-header p { color: var(--muted); max-width: 500px; margin: 0 auto; }
+    .divider { width: 50px; height: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 2px; margin: 16px auto 0; }
+
+    /* ABOUT */
+    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .about-img-wrap {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+    }
+    .avatar {
+      width: 150px; height: 150px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.5rem; margin: 0 auto 20px;
+    }
+    .about-img-wrap h3 { font-size: 1.3rem; margin-bottom: 6px; }
+    .about-img-wrap p { color: var(--muted); font-size: 0.9rem; }
+    .about-text h3 { font-size: 1.6rem; margin-bottom: 16px; }
+    .about-text p { color: var(--muted); line-height: 1.8; margin-bottom: 20px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+    .info-item .key { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .info-item .val { font-size: 0.9rem; font-weight: 600; }
+
+    /* SKILLS */
+    #skills { background: var(--bg2); }
+    .skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+    .skill-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .skill-card:hover { transform: translateY(-3px); border-color: var(--primary); }
+    .skill-icon { font-size: 2rem; margin-bottom: 12px; }
+    .skill-card h4 { font-size: 1rem; margin-bottom: 8px; }
+    .skill-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .skill-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 1s ease; }
+    .skill-pct { font-size: 0.8rem; color: var(--primary); margin-top: 6px; font-weight: 600; }
+
+    /* PROJECTS */
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+    .project-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .project-card:hover { transform: translateY(-4px); border-color: var(--primary); }
+    .project-icon {
+      width: 50px; height: 50px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; margin-bottom: 16px;
+    }
+    .project-card h4 { font-size: 1.1rem; margin-bottom: 8px; }
+    .project-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px; }
+    .project-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .ptag {
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    /* EDUCATION */
+    #education { background: var(--bg2); }
+    .timeline { max-width: 700px; margin: 0 auto; }
+    .timeline-item { display: flex; gap: 24px; margin-bottom: 40px; }
+    .timeline-dot {
+      flex-shrink: 0;
+      width: 14px; height: 14px;
+      background: var(--primary);
+      border-radius: 50%;
+      margin-top: 6px;
+      box-shadow: 0 0 0 4px rgba(99,102,241,0.2);
+    }
+    .timeline-line { width: 2px; background: var(--border); flex-shrink: 0; margin-left: 6px; }
+    .timeline-wrap { display: flex; flex-direction: column; gap: 0; }
+    .edu-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      flex: 1;
+    }
+    .edu-card .year {
+      display: inline-block;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+    .edu-card h4 { font-size: 1.1rem; margin-bottom: 6px; }
+    .edu-card .inst { color: var(--muted); font-size: 0.9rem; margin-bottom: 4px; }
+    .edu-card .grade { color: #34d399; font-weight: 700; font-size: 0.9rem; }
+
+    /* CONTACT */
+    .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 900px; margin: 0 auto; }
+    .contact-info h3 { font-size: 1.4rem; margin-bottom: 20px; }
+    .contact-item { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+    .contact-icon {
+      width: 44px; height: 44px;
+      background: rgba(99,102,241,0.15);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .contact-item .clabel { font-size: 0.8rem; color: var(--muted); }
+    .contact-item .cval { font-weight: 600; }
+    .contact-form { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 32px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .form-group textarea { height: 100px; resize: vertical; }
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.85; }
+    #contact-msg { margin-top: 12px; text-align: center; color: #34d399; font-size: 0.9rem; }
+
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 32px 5%;
+      text-align: center;
+    }
+    footer p { color: var(--muted); font-size: 0.9rem; }
+    footer span { color: var(--primary); }
+    .back-home {
+      display: inline-block;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      text-decoration: none;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 24px;
+      transition: background 0.2s;
+    }
+    .back-home:hover { background: rgba(99,102,241,0.2); }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+      .about-grid { grid-template-columns: 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">HP</div>
+  <input type="checkbox" id="menu-toggle" />
+  <label class="hamburger" for="menu-toggle">
+    <span></span><span></span><span></span>
+  </label>
+  <ul class="nav-links">
+    <li><a href="#home">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#education">Education</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<section id="home" class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">&#127891; Computer Engineering Student</div>
+    <h1>Hi, I'm <span>Harsh Pansuriya</span></h1>
+    <p>A passionate Computer Engineering student building modern web applications and exploring the world of full-stack development.</p>
+    <div class="hero-btns">
+      <a href="#projects" class="btn-primary">View Projects</a>
+      <a href="#contact" class="btn-outline">Contact Me</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">5+</div><div class="lbl">Projects</div></div>
+      <div class="hero-stat"><div class="num">3+</div><div class="lbl">Technologies</div></div>
+      <div class="hero-stat"><div class="num">B.E.</div><div class="lbl">Degree</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="section-header">
+    <div class="tag">About</div>
+    <h2>About Me</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-img-wrap">
+      <div class="avatar">&#128104;&#8205;&#128187;</div>
+      <h3>Harsh Pansuriya</h3>
+      <p>Computer Engineering Student</p>
+      <br/>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:12px;">
+        <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:4px 12px;border-radius:6px;font-size:0.8rem;">Frontend Dev</span>
+        <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:4px 12px;border-radius:6px;font-size:0.8rem;">Backend Dev</span>
+        <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;padding:4px 12px;border-radius:6px;font-size:0.8rem;">Problem Solver</span>
+      </div>
+    </div>
+    <div class="about-text">
+      <h3>Turning ideas into reality</h3>
+      <p>I am Harsh Pansuriya, a B.E. Computer Engineering student with a strong interest in web development. I enjoy building responsive, user-friendly web applications using modern technologies like React, Node.js, and MongoDB.</p>
+      <p>I love solving complex problems, learning new technologies, and building projects that have real-world impact. My goal is to become a proficient full-stack developer.</p>
+      <div class="info-grid">
+        <div class="info-item"><div class="key">Name</div><div class="val">Harsh Pansuriya</div></div>
+        <div class="info-item"><div class="key">Degree</div><div class="val">B.E. Computer Engg.</div></div>
+        <div class="info-item"><div class="key">Semester</div><div class="val">5th Semester</div></div>
+        <div class="info-item"><div class="key">Location</div><div class="val">Gujarat, India</div></div>
+        <div class="info-item"><div class="key">Email</div><div class="val">harsh@example.com</div></div>
+        <div class="info-item"><div class="key">Status</div><div class="val" style="color:#34d399;">Available</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="skills">
+  <div class="section-header">
+    <div class="tag">Skills</div>
+    <h2>Technical Skills</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="skills-grid">
+    <div class="skill-card">
+      <div class="skill-icon">🌐</div>
+      <h4>HTML5</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:90%"></div></div>
+      <div class="skill-pct">90%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🎨</div>
+      <h4>CSS3</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:85%"></div></div>
+      <div class="skill-pct">85%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">⚡</div>
+      <h4>JavaScript</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:80%"></div></div>
+      <div class="skill-pct">80%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">⚛️</div>
+      <h4>React.js</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:75%"></div></div>
+      <div class="skill-pct">75%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🟢</div>
+      <h4>Node.js</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:70%"></div></div>
+      <div class="skill-pct">70%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🍃</div>
+      <h4>MongoDB</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:65%"></div></div>
+      <div class="skill-pct">65%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">🐍</div>
+      <h4>Python</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:72%"></div></div>
+      <div class="skill-pct">72%</div>
+    </div>
+    <div class="skill-card">
+      <div class="skill-icon">☕</div>
+      <h4>Java</h4>
+      <div class="skill-bar"><div class="skill-fill" style="width:68%"></div></div>
+      <div class="skill-pct">68%</div>
+    </div>
+  </div>
+</section>
+
+<section id="projects">
+  <div class="section-header">
+    <div class="tag">Projects</div>
+    <h2>My Projects</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="projects-grid">
+    <div class="project-card">
+      <div class="project-icon">📚</div>
+      <h4>Library Management System</h4>
+      <p>A full-stack web application for managing books, members, issue and return operations with real-time dashboard statistics.</p>
+      <div class="project-tags">
+        <span class="ptag">React</span>
+        <span class="ptag">Node.js</span>
+        <span class="ptag">MongoDB</span>
+      </div>
+    </div>
+    <div class="project-card">
+      <div class="project-icon">🎓</div>
+      <h4>Student Management System</h4>
+      <p>REST API based student management with CRUD operations, search functionality and complete form validation.</p>
+      <div class="project-tags">
+        <span class="ptag">Express.js</span>
+        <span class="ptag">JavaScript</span>
+        <span class="ptag">REST API</span>
+      </div>
+    </div>
+    <div class="project-card">
+      <div class="project-icon">🌦️</div>
+      <h4>Weather Dashboard</h4>
+      <p>Real-time weather application using Fetch API to display weather data for any city with responsive design.</p>
+      <div class="project-tags">
+        <span class="ptag">HTML/CSS</span>
+        <span class="ptag">Fetch API</span>
+        <span class="ptag">JavaScript</span>
+      </div>
+    </div>
+    <div class="project-card">
+      <div class="project-icon">📊</div>
+      <h4>Marks Calculator</h4>
+      <p>Interactive marks calculator with dynamic DOM manipulation, percentage calculation and grade assignment.</p>
+      <div class="project-tags">
+        <span class="ptag">HTML</span>
+        <span class="ptag">CSS</span>
+        <span class="ptag">JavaScript</span>
+      </div>
+    </div>
+    <div class="project-card">
+      <div class="project-icon">🔐</div>
+      <h4>Auth System</h4>
+      <p>JWT-based authentication system with login, register, protected routes and session management.</p>
+      <div class="project-tags">
+        <span class="ptag">Node.js</span>
+        <span class="ptag">JWT</span>
+        <span class="ptag">MongoDB</span>
+      </div>
+    </div>
+    <div class="project-card">
+      <div class="project-icon">🛒</div>
+      <h4>E-Commerce Frontend</h4>
+      <p>Responsive e-commerce UI with product listings, cart functionality and checkout flow built with React.</p>
+      <div class="project-tags">
+        <span class="ptag">React</span>
+        <span class="ptag">Context API</span>
+        <span class="ptag">CSS3</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="education">
+  <div class="section-header">
+    <div class="tag">Education</div>
+    <h2>Education</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="timeline">
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div class="edu-card">
+        <span class="year">2022 – Present</span>
+        <h4>B.E. Computer Engineering</h4>
+        <div class="inst">Gujarat Technological University (GTU)</div>
+        <div class="grade">CGPA: 8.5 / 10</div>
+      </div>
+      <div class="edu-card">
+        <span class="year">2020 – 2022</span>
+        <h4>Higher Secondary Certificate (HSC) – Science</h4>
+        <div class="inst">Gujarat Secondary & Higher Secondary Education Board (GSEB)</div>
+        <div class="grade">Percentage: 82%</div>
+      </div>
+      <div class="edu-card">
+        <span class="year">2020</span>
+        <h4>Secondary School Certificate (SSC)</h4>
+        <div class="inst">Gujarat Secondary & Higher Secondary Education Board (GSEB)</div>
+        <div class="grade">Percentage: 89%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="section-header">
+    <div class="tag">Contact</div>
+    <h2>Get In Touch</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="contact-grid">
+    <div class="contact-info">
+      <h3>Let's Connect</h3>
+      <div class="contact-item">
+        <div class="contact-icon">📧</div>
+        <div><div class="clabel">Email</div><div class="cval">harsh.pansuriya@example.com</div></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">📱</div>
+        <div><div class="clabel">Phone</div><div class="cval">+91 98765 43210</div></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">📍</div>
+        <div><div class="clabel">Location</div><div class="cval">Gujarat, India</div></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">🎓</div>
+        <div><div class="clabel">College</div><div class="cval">B.E. Computer Engineering</div></div>
+      </div>
+    </div>
+    <div class="contact-form">
+      <form id="contactForm" onsubmit="submitContact(event)">
+        <div class="form-group">
+          <label>Your Name</label>
+          <input type="text" placeholder="Enter your name" required />
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" placeholder="Enter your email" required />
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea placeholder="Write your message..." required></textarea>
+        </div>
+        <button type="submit" class="btn-submit">Send Message</button>
+        <div id="contact-msg"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <a href="../index.html" class="back-home">← Back to Dashboard</a>
+  <p>Designed & Built by <span>Harsh Pansuriya</span> &mdash; B.E. Computer Engineering</p>
+  <p style="margin-top:8px;font-size:0.8rem;">Practical 1: Responsive Portfolio using HTML5 & CSS3</p>
+</footer>
+
+<script>
+  function submitContact(e) {
+    e.preventDefault();
+    const msg = document.getElementById('contact-msg');
+    msg.textContent = '✓ Message sent successfully! I will get back to you soon.';
+    e.target.reset();
+    setTimeout(() => msg.textContent = '', 4000);
+  }
+</script>
+</body>
+</html>

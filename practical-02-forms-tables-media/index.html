@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 2 - Forms, Tables & Media</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #0ea5e9;
+      --bg: #0f172a;
+      --bg2: #1e293b;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --success: #22c55e;
+      --error: #ef4444;
+    }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .top-bar {
+      background: var(--bg2); border-bottom: 1px solid var(--border);
+      padding: 12px 5%; display: flex; align-items: center; justify-content: space-between;
+    }
+    .top-bar a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    .prac-info { font-size: 0.85rem; color: var(--muted); }
+
+    header {
+      background: linear-gradient(135deg, #0c4a6e, #0369a1);
+      padding: 50px 5% 40px; text-align: center;
+    }
+    header .badge {
+      display: inline-block; background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px; padding: 5px 16px; font-size: 0.8rem; margin-bottom: 14px;
+    }
+    header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+    header p { color: #bae6fd; font-size: 1rem; }
+    .obj-box {
+      display: inline-flex; gap: 30px; margin-top: 20px;
+      background: rgba(0,0,0,0.2); border-radius: 10px; padding: 14px 28px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .obj-item { text-align: center; }
+    .obj-item .num { font-size: 1.4rem; font-weight: 800; }
+    .obj-item .lbl { font-size: 0.75rem; color: #7dd3fc; }
+
+    .tabs {
+      display: flex; gap: 0; background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 5%; overflow-x: auto;
+    }
+    .tab-btn {
+      background: none; border: none; color: var(--muted);
+      padding: 16px 24px; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; border-bottom: 3px solid transparent;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover { color: var(--text); }
+
+    .tab-content { display: none; padding: 40px 5%; }
+    .tab-content.active { display: block; }
+
+    /* FORM */
+    .form-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 36px; max-width: 700px; margin: 0 auto;
+    }
+    .form-card h2 { font-size: 1.4rem; margin-bottom: 6px; }
+    .form-card .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+    .form-group label span { color: var(--error); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px; color: var(--text);
+      font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary);
+    }
+    .form-group input.invalid { border-color: var(--error); }
+    .form-group input.valid { border-color: var(--success); }
+    .err-msg { font-size: 0.78rem; color: var(--error); margin-top: 5px; display: none; }
+    .err-msg.show { display: block; }
+    .radio-group, .checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+    .radio-group label, .checkbox-group label {
+      display: flex; align-items: center; gap: 6px;
+      color: var(--text); font-size: 0.9rem; cursor: pointer;
+    }
+    .checkbox-group { flex-wrap: wrap; }
+    .form-actions { display: flex; gap: 12px; margin-top: 28px; }
+    .btn-submit {
+      background: linear-gradient(135deg, #0ea5e9, #0369a1);
+      color: #fff; border: none; padding: 12px 28px;
+      border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.85; }
+    .btn-reset {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: 12px 28px;
+      border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: border-color 0.2s;
+    }
+    .btn-reset:hover { border-color: var(--primary); }
+    #form-success {
+      display: none; background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.4); border-radius: 10px;
+      padding: 16px 20px; margin-top: 16px; color: #4ade80;
+    }
+
+    /* TABLE */
+    .table-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .table-header { padding: 24px 28px; border-bottom: 1px solid var(--border); }
+    .table-header h2 { font-size: 1.3rem; margin-bottom: 4px; }
+    .table-header p { color: var(--muted); font-size: 0.85rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--bg); }
+    th {
+      padding: 14px 18px; text-align: left; font-size: 0.8rem;
+      text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 14px 18px; font-size: 0.9rem; border-bottom: 1px solid rgba(51,65,85,0.5); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(14,165,233,0.05); }
+    .grade-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 6px;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .g-o { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .g-a { background: rgba(14,165,233,0.15); color: #38bdf8; }
+    .g-b { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .g-c { background: rgba(239,68,68,0.15); color: #f87171; }
+
+    /* MEDIA */
+    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+    .media-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .media-card-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .media-icon {
+      width: 36px; height: 36px; background: rgba(14,165,233,0.15);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    }
+    .media-card-header h4 { font-size: 1rem; }
+    .media-card-body { padding: 20px; }
+    .media-card-body img { width: 100%; border-radius: 10px; object-fit: cover; }
+    .img-placeholder {
+      width: 100%; height: 200px; background: linear-gradient(135deg, #1e3a8a, #3730a3);
+      border-radius: 10px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px;
+    }
+    .img-placeholder .em { font-size: 3rem; }
+    .img-placeholder p { color: #a5b4fc; font-size: 0.9rem; }
+    audio, video { width: 100%; border-radius: 8px; margin-top: 8px; }
+    .media-desc { color: var(--muted); font-size: 0.85rem; margin-top: 10px; line-height: 1.6; }
+    .responsive-container { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; }
+    .responsive-container iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+    footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 24px 5%; text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 40px;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html">← Dashboard</a>
+  <span class="prac-info">Practical 2 &mdash; Forms, Tables &amp; Media</span>
+</div>
+
+<header>
+  <div class="badge">Practical 2</div>
+  <h1>Forms, Tables &amp; Media Elements</h1>
+  <p>HTML5 Forms with Validation &bull; Data Tables &bull; Media Elements</p>
+  <div class="obj-box">
+    <div class="obj-item"><div class="num">1</div><div class="lbl">Registration Form</div></div>
+    <div class="obj-item"><div class="num">2</div><div class="lbl">Student Table</div></div>
+    <div class="obj-item"><div class="num">3</div><div class="lbl">Media Elements</div></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('form',this)">&#128203; Registration Form</button>
+  <button class="tab-btn" onclick="showTab('table',this)">&#128202; Student Table</button>
+  <button class="tab-btn" onclick="showTab('media',this)">&#127909; Media Elements</button>
+</div>
+
+<!-- TAB 1: FORM -->
+<div id="tab-form" class="tab-content active">
+  <div class="form-card">
+    <h2>Student Registration Form</h2>
+    <p class="sub">Fill in the details below to register. All fields marked with * are required.</p>
+
+    <form id="regForm" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Full Name <span>*</span></label>
+          <input type="text" id="fname" placeholder="Harsh Pansuriya" />
+          <div class="err-msg" id="fname-err">Please enter your full name.</div>
+        </div>
+        <div class="form-group">
+          <label>Email Address <span>*</span></label>
+          <input type="email" id="femail" placeholder="harsh@example.com" />
+          <div class="err-msg" id="femail-err">Please enter a valid email.</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone Number <span>*</span></label>
+          <input type="tel" id="fphone" placeholder="+91 98765 43210" maxlength="13" />
+          <div class="err-msg" id="fphone-err">Enter a valid 10-digit phone number.</div>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth <span>*</span></label>
+          <input type="date" id="fdob" />
+          <div class="err-msg" id="fdob-err">Please select date of birth.</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Gender <span>*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="gender" value="Male" /> Male</label>
+          <label><input type="radio" name="gender" value="Female" /> Female</label>
+          <label><input type="radio" name="gender" value="Other" /> Other</label>
+        </div>
+        <div class="err-msg" id="fgender-err">Please select gender.</div>
+      </div>
+      <div class="form-group">
+        <label>Course <span>*</span></label>
+        <select id="fcourse">
+          <option value="">-- Select Course --</option>
+          <option>B.E. Computer Engineering</option>
+          <option>B.E. Information Technology</option>
+          <option>B.E. Electronics</option>
+          <option>B.E. Mechanical</option>
+          <option>B.E. Civil</option>
+          <option>BCA</option>
+          <option>MCA</option>
+        </select>
+        <div class="err-msg" id="fcourse-err">Please select a course.</div>
+      </div>
+      <div class="form-group">
+        <label>Technical Skills</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="skills" value="HTML/CSS" /> HTML/CSS</label>
+          <label><input type="checkbox" name="skills" value="JavaScript" /> JavaScript</label>
+          <label><input type="checkbox" name="skills" value="React" /> React</label>
+          <label><input type="checkbox" name="skills" value="Node.js" /> Node.js</label>
+          <label><input type="checkbox" name="skills" value="Python" /> Python</label>
+          <label><input type="checkbox" name="skills" value="Java" /> Java</label>
+          <label><input type="checkbox" name="skills" value="MongoDB" /> MongoDB</label>
+          <label><input type="checkbox" name="skills" value="MySQL" /> MySQL</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <textarea id="faddress" placeholder="Enter your complete address..." rows="3"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-submit">Submit Registration</button>
+        <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+      </div>
+      <div id="form-success">
+        ✓ Registration successful! Welcome, <strong id="success-name"></strong>. Your form has been submitted.
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TAB 2: TABLE -->
+<div id="tab-table" class="tab-content">
+  <div class="table-card">
+    <div class="table-header">
+      <h2>Student Data Table</h2>
+      <p>Academic records for B.E. Computer Engineering — Semester 5</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Roll No</th>
+            <th>Name</th>
+            <th>Course</th>
+            <th>Semester</th>
+            <th>Marks (out of 100)</th>
+            <th>Grade</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CE001</td><td>Harsh Pansuriya</td>
+            <td>Computer Engg.</td><td>5th</td><td>92</td>
+            <td><span class="grade-badge g-o">O (Outstanding)</span></td>
+          </tr>
+          <tr>
+            <td>CE002</td><td>Riya Sharma</td>
+            <td>Computer Engg.</td><td>5th</td><td>85</td>
+            <td><span class="grade-badge g-a">A+ (Excellent)</span></td>
+          </tr>
+          <tr>
+            <td>CE003</td><td>Arjun Patel</td>
+            <td>Computer Engg.</td><td>5th</td><td>78</td>
+            <td><span class="grade-badge g-a">A (Very Good)</span></td>
+          </tr>
+          <tr>
+            <td>CE004</td><td>Priya Desai</td>
+            <td>Computer Engg.</td><td>5th</td><td>71</td>
+            <td><span class="grade-badge g-b">B+ (Good)</span></td>
+          </tr>
+          <tr>
+            <td>CE005</td><td>Raj Mehta</td>
+            <td>Computer Engg.</td><td>5th</td><td>65</td>
+            <td><span class="grade-badge g-b">B (Above Average)</span></td>
+          </tr>
+          <tr>
+            <td>CE006</td><td>Sneha Modi</td>
+            <td>Computer Engg.</td><td>5th</td><td>58</td>
+            <td><span class="grade-badge g-c">C (Average)</span></td>
+          </tr>
+          <tr>
+            <td>CE007</td><td>Karan Shah</td>
+            <td>Computer Engg.</td><td>5th</td><td>88</td>
+            <td><span class="grade-badge g-a">A+ (Excellent)</span></td>
+          </tr>
+          <tr>
+            <td>CE008</td><td>Anita Joshi</td>
+            <td>Computer Engg.</td><td>5th</td><td>95</td>
+            <td><span class="grade-badge g-o">O (Outstanding)</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: MEDIA -->
+<div id="tab-media" class="tab-content">
+  <div class="media-grid">
+    <!-- Image -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">🖼️</div>
+        <div><h4>Image Element</h4></div>
+      </div>
+      <div class="media-card-body">
+        <div class="img-placeholder">
+          <span class="em">🏫</span>
+          <p>College Campus Image</p>
+          <small style="color:#7dd3fc;font-size:0.75rem;">Gujarat Technological University</small>
+        </div>
+        <p class="media-desc">The &lt;img&gt; tag embeds an image. The <code>src</code> attribute specifies the image path, <code>alt</code> provides alternative text, and responsive images use <code>max-width: 100%</code> in CSS.</p>
+      </div>
+    </div>
+
+    <!-- Second Image with actual src -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">🖼️</div>
+        <div><h4>Profile Image (SVG)</h4></div>
+      </div>
+      <div class="media-card-body">
+        <svg width="100%" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" style="border-radius:10px;">
+          <rect width="400" height="200" fill="#1e3a8a"/>
+          <circle cx="200" cy="85" r="45" fill="#6366f1"/>
+          <text x="200" y="100" text-anchor="middle" fill="white" font-size="36" font-family="Segoe UI">H</text>
+          <text x="200" y="165" text-anchor="middle" fill="#c7d2fe" font-size="16" font-family="Segoe UI">Harsh Pansuriya</text>
+          <text x="200" y="185" text-anchor="middle" fill="#a5b4fc" font-size="12" font-family="Segoe UI">Computer Engineering</text>
+        </svg>
+        <p class="media-desc">This is an SVG image rendered inline. SVG (Scalable Vector Graphics) is resolution-independent and ideal for logos, icons, and illustrations.</p>
+      </div>
+    </div>
+
+    <!-- Audio -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">🎵</div>
+        <div><h4>Audio Element</h4></div>
+      </div>
+      <div class="media-card-body">
+        <div style="background:var(--bg);border-radius:10px;padding:20px;text-align:center;margin-bottom:12px;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">🎵</div>
+          <p style="color:var(--muted);font-size:0.85rem;">Audio Demo — HTML5 &lt;audio&gt; tag</p>
+        </div>
+        <audio controls style="width:100%">
+          <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+          Your browser does not support the audio element.
+        </audio>
+        <p class="media-desc">The HTML5 &lt;audio&gt; element plays audio files. The <code>controls</code> attribute adds play/pause/volume controls. Supports MP3, OGG, WAV formats.</p>
+      </div>
+    </div>
+
+    <!-- Video -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">🎬</div>
+        <div><h4>Video Element</h4></div>
+      </div>
+      <div class="media-card-body">
+        <div style="background:var(--bg);border-radius:10px;padding:20px;text-align:center;margin-bottom:12px;">
+          <div style="font-size:2.5rem;margin-bottom:8px;">🎬</div>
+          <p style="color:var(--muted);font-size:0.85rem;">Video Demo — HTML5 &lt;video&gt; tag</p>
+        </div>
+        <video controls style="width:100%;border-radius:8px;background:#000;" poster="">
+          <source src="" type="video/mp4">
+          <p style="color:var(--muted);text-align:center;padding:20px;">No local video file. In a real deployment, provide an MP4 src.</p>
+        </video>
+        <p class="media-desc">The &lt;video&gt; tag plays video files with controls. The <code>poster</code> attribute shows a thumbnail. Supports MP4, WebM, OGG formats.</p>
+      </div>
+    </div>
+
+    <!-- Responsive iframe embed -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">📺</div>
+        <div><h4>Responsive iFrame Embed</h4></div>
+      </div>
+      <div class="media-card-body">
+        <div class="responsive-container" style="background:#000;">
+          <div style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+            <div style="font-size:2.5rem;">📺</div>
+            <p style="color:var(--muted);font-size:0.85rem;">Responsive iFrame Container</p>
+            <p style="color:#64748b;font-size:0.75rem;">16:9 aspect ratio maintained</p>
+          </div>
+        </div>
+        <p class="media-desc">Responsive iFrame using the padding-bottom trick (56.25% = 16:9). Works for YouTube, Google Maps, or any embedded content at any screen size.</p>
+      </div>
+    </div>
+
+    <!-- Figure and figcaption -->
+    <div class="media-card">
+      <div class="media-card-header">
+        <div class="media-icon">📝</div>
+        <div><h4>Figure &amp; Figcaption</h4></div>
+      </div>
+      <div class="media-card-body">
+        <figure style="text-align:center;">
+          <div style="background:linear-gradient(135deg,#064e3b,#065f46);border-radius:10px;padding:30px;margin-bottom:10px;">
+            <svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+              <rect width="80" height="80" rx="16" fill="#10b981"/>
+              <text x="40" y="52" text-anchor="middle" fill="white" font-size="32">💻</text>
+            </svg>
+          </div>
+          <figcaption style="color:var(--muted);font-size:0.85rem;padding:8px;background:var(--bg);border-radius:8px;">
+            Fig 1: Computer Engineering Lab &mdash; GTU Campus
+          </figcaption>
+        </figure>
+        <p class="media-desc">The &lt;figure&gt; element wraps media content. &lt;figcaption&gt; provides a visible caption/description for the media, improving accessibility and semantics.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="../index.html">← Back to Dashboard</a> &mdash;
+  Practical 2: Forms, Tables &amp; Media | Harsh Pansuriya &mdash; Web Application Development
+</footer>
+
+<script>
+  function showTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  document.getElementById('regForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let valid = true;
+
+    const fields = [
+      { id: 'fname', errId: 'fname-err', check: v => v.trim().length >= 2 },
+      { id: 'femail', errId: 'femail-err', check: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
+      { id: 'fphone', errId: 'fphone-err', check: v => /^[+\d\s]{10,13}$/.test(v.trim()) },
+      { id: 'fdob', errId: 'fdob-err', check: v => v !== '' },
+      { id: 'fcourse', errId: 'fcourse-err', check: v => v !== '' },
+    ];
+
+    fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      const err = document.getElementById(f.errId);
+      if (!f.check(el.value)) {
+        el.classList.add('invalid'); el.classList.remove('valid');
+        err.classList.add('show'); valid = false;
+      } else {
+        el.classList.remove('invalid'); el.classList.add('valid');
+        err.classList.remove('show');
+      }
+    });
+
+    const genderChecked = document.querySelector('input[name="gender"]:checked');
+    const gErr = document.getElementById('fgender-err');
+    if (!genderChecked) { gErr.classList.add('show'); valid = false; }
+    else gErr.classList.remove('show');
+
+    if (valid) {
+      const name = document.getElementById('fname').value;
+      document.getElementById('success-name').textContent = name;
+      document.getElementById('form-success').style.display = 'block';
+      this.reset();
+      document.querySelectorAll('.valid').forEach(el => el.classList.remove('valid'));
+      setTimeout(() => document.getElementById('form-success').style.display = 'none', 5000);
+    }
+  });
+
+  function resetForm() {
+    document.getElementById('regForm').reset();
+    document.querySelectorAll('.err-msg').forEach(e => e.classList.remove('show'));
+    document.querySelectorAll('input.invalid, input.valid, select.invalid, select.valid').forEach(e => {
+      e.classList.remove('invalid', 'valid');
+    });
+    document.getElementById('form-success').style.display = 'none';
+  }
+</script>
+</body>
+</html>

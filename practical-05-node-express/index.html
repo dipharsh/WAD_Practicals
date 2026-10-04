@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 5 - Node.js & Express REST API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --primary: #84cc16; --bg: #0f172a; --bg2: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .top-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; align-items: center; justify-content: space-between; }
+    .top-bar a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    header { background: linear-gradient(135deg, #1a2e05, #365314); padding: 50px 5% 40px; text-align: center; }
+    header .badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 50px; padding: 5px 16px; font-size: 0.8rem; margin-bottom: 14px; }
+    header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+    header p { color: #bef264; font-size: 1rem; }
+    .main { max-width: 1100px; margin: 0 auto; padding: 40px 20px; }
+
+    .info-banner {
+      background: rgba(132,204,22,0.08); border: 1px solid rgba(132,204,22,0.3);
+      border-radius: 12px; padding: 16px 20px; margin-bottom: 28px;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .info-banner .icon { font-size: 1.4rem; flex-shrink: 0; }
+    .info-banner p { color: #bef264; font-size: 0.9rem; line-height: 1.6; }
+    .info-banner strong { color: #fff; }
+
+    .layout { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+
+    /* SIDEBAR */
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .sidebar-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .sidebar-card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 0.85rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .endpoint-list { padding: 8px; }
+    .endpoint-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; cursor: pointer; transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+    .endpoint-item:hover { background: var(--bg); }
+    .endpoint-item.active { background: var(--bg); border-color: var(--primary); }
+    .method-badge { font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 5px; min-width: 50px; text-align: center; }
+    .m-get { background: rgba(16,185,129,0.15); color: #34d399; }
+    .m-post { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .m-put { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .m-delete { background: rgba(239,68,68,0.15); color: #f87171; }
+    .endpoint-path { font-family: monospace; font-size: 0.8rem; color: var(--text); }
+    .endpoint-desc { font-size: 0.75rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+    /* MAIN PANEL */
+    .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; }
+    .panel-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .panel-header h3 { font-size: 1.1rem; }
+    .panel-header .status { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+    .panel-body { padding: 24px; }
+
+    .req-section { margin-bottom: 20px; }
+    .req-section label { display: block; font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .url-bar { display: flex; gap: 10px; align-items: center; }
+    .method-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; min-width: 100px; }
+    .url-input { flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; font-family: monospace; }
+    .url-input:focus { outline: none; border-color: var(--primary); }
+    .btn-send { background: linear-gradient(135deg, #84cc16, #65a30d); color: #000; border: none; padding: 10px 22px; border-radius: 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.2s; }
+    .btn-send:hover { opacity: 0.85; }
+
+    .body-editor { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; color: var(--text); font-family: monospace; font-size: 0.85rem; min-height: 100px; resize: vertical; }
+    .body-editor:focus { outline: none; border-color: var(--primary); }
+
+    .resp-header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--bg); border-radius: 10px 10px 0 0; border: 1px solid var(--border); border-bottom: none; }
+    .status-code { font-size: 0.85rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; }
+    .s-2xx { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .s-4xx { background: rgba(239,68,68,0.15); color: #f87171; }
+    .resp-time { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+    .resp-body { background: var(--bg); border: 1px solid var(--border); border-radius: 0 0 10px 10px; padding: 16px; font-family: monospace; font-size: 0.82rem; line-height: 1.6; max-height: 350px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+    .resp-placeholder { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 40px; }
+
+    .server-code { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 28px; margin-top: 24px; }
+    .server-code h3 { font-size: 1.1rem; margin-bottom: 16px; color: var(--primary); }
+    pre { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; overflow-x: auto; font-size: 0.8rem; line-height: 1.6; }
+    .kw { color: #c084fc; } .fn { color: #34d399; } .str { color: #fbbf24; } .cm { color: #475569; } .num { color: #f97316; }
+
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 24px 5%; text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 40px; }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html">← Dashboard</a>
+  <span style="color:var(--muted);font-size:0.85rem;">Practical 5 — Node.js &amp; Express REST API</span>
+</div>
+
+<header>
+  <div class="badge">Practical 5</div>
+  <h1>Node.js &amp; Express REST API</h1>
+  <p>In-Browser API Tester &bull; CRUD Endpoints &bull; HTTP Methods &bull; JSON Responses</p>
+</header>
+
+<div class="main">
+
+  <div class="info-banner">
+    <div class="icon">💡</div>
+    <p>This page simulates a full Express REST API <strong>in-browser</strong> so it can be demonstrated without starting a Node.js server. The actual server code is shown below. For production use, run <code>node server.js</code> in the <strong>practical-05-node-express/</strong> folder and point the tester to <code>http://localhost:3000</code>.</p>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">API Endpoints</div>
+        <div class="endpoint-list" id="endpointList">
+          <div class="endpoint-item active" onclick="selectEndpoint('GET','/api/students','','Get all students')">
+            <span class="method-badge m-get">GET</span>
+            <span class="endpoint-path">/api/students</span>
+          </div>
+          <div class="endpoint-item" onclick="selectEndpoint('GET','/api/students/1','','Get student by ID')">
+            <span class="method-badge m-get">GET</span>
+            <span class="endpoint-path">/api/students/1</span>
+          </div>
+          <div class="endpoint-item" onclick="selectEndpoint('POST','/api/students','{\n  &quot;name&quot;: &quot;New Student&quot;,\n  &quot;course&quot;: &quot;Computer Engg.&quot;,\n  &quot;semester&quot;: 5,\n  &quot;marks&quot;: 85,\n  &quot;email&quot;: &quot;new@example.com&quot;\n}','Create new student')">
+            <span class="method-badge m-post">POST</span>
+            <span class="endpoint-path">/api/students</span>
+          </div>
+          <div class="endpoint-item" onclick="selectEndpoint('PUT','/api/students/1','{\n  &quot;name&quot;: &quot;Updated Name&quot;,\n  &quot;marks&quot;: 90\n}','Update student')">
+            <span class="method-badge m-put">PUT</span>
+            <span class="endpoint-path">/api/students/1</span>
+          </div>
+          <div class="endpoint-item" onclick="selectEndpoint('DELETE','/api/students/1','','Delete student')">
+            <span class="method-badge m-delete">DELETE</span>
+            <span class="endpoint-path">/api/students/1</span>
+          </div>
+          <div class="endpoint-item" onclick="selectEndpoint('GET','/api/students/999','','404 - Not Found')">
+            <span class="method-badge m-get">GET</span>
+            <span class="endpoint-path">/api/students/999</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-header">Data Store</div>
+        <div style="padding:14px 16px;">
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:8px;">Current students in memory:</div>
+          <div id="student-count" style="font-size:1.8rem;font-weight:800;color:var(--primary);">5</div>
+          <div style="font-size:0.75rem;color:var(--muted);">records</div>
+          <button onclick="resetData()" style="margin-top:12px;width:100%;background:var(--bg);border:1px solid var(--border);color:var(--muted);padding:8px;border-radius:6px;cursor:pointer;font-size:0.8rem;">Reset Data</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div class="panel">
+        <div class="panel-header">
+          <div style="font-size:1.2rem;">🔧</div>
+          <h3>API Request Tester</h3>
+          <span class="status" id="req-label">GET /api/students</span>
+        </div>
+        <div class="panel-body">
+          <div class="req-section">
+            <label>Method &amp; URL</label>
+            <div class="url-bar">
+              <select class="method-select" id="reqMethod">
+                <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+              </select>
+              <input class="url-input" id="reqUrl" value="/api/students" />
+              <button class="btn-send" onclick="sendRequest()">Send &#8594;</button>
+            </div>
+          </div>
+          <div class="req-section" id="body-section" style="display:none;">
+            <label>Request Body (JSON)</label>
+            <textarea class="body-editor" id="reqBody" placeholder='{"key":"value"}'></textarea>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px;">Response</label>
+            <div id="resp-header" style="display:none;" class="resp-header">
+              <span class="status-code" id="resp-status"></span>
+              <span id="resp-status-text" style="font-size:0.85rem;color:var(--muted);"></span>
+              <span class="resp-time" id="resp-time"></span>
+            </div>
+            <div class="resp-body" id="resp-body">
+              <div class="resp-placeholder">Send a request to see the response</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="server-code">
+    <h3>server.js — Express Server Code</h3>
+    <pre><span class="kw">const</span> express = <span class="fn">require</span>(<span class="str">'express'</span>);
+<span class="kw">const</span> cors = <span class="fn">require</span>(<span class="str">'cors'</span>);
+<span class="kw">const</span> app = <span class="fn">express</span>();
+<span class="kw">const</span> PORT = process.env.PORT || <span class="num">3000</span>;
+
+app.<span class="fn">use</span>(<span class="fn">cors</span>());
+app.<span class="fn">use</span>(express.<span class="fn">json</span>());
+
+<span class="cm">// In-memory data store</span>
+<span class="kw">let</span> students = [
+  { id: <span class="num">1</span>, name: <span class="str">'Harsh Pansuriya'</span>, course: <span class="str">'Computer Engg.'</span>, semester: <span class="num">5</span>, marks: <span class="num">92</span>, email: <span class="str">'harsh@example.com'</span> },
+  <span class="cm">// ... more students</span>
+];
+
+<span class="cm">// GET /api/students — Get all students</span>
+app.<span class="fn">get</span>(<span class="str">'/api/students'</span>, (req, res) => {
+  res.<span class="fn">json</span>({ success: <span class="kw">true</span>, count: students.length, data: students });
+});
+
+<span class="cm">// GET /api/students/:id — Get student by ID</span>
+app.<span class="fn">get</span>(<span class="str">'/api/students/:id'</span>, (req, res) => {
+  <span class="kw">const</span> student = students.<span class="fn">find</span>(s => s.id === <span class="fn">parseInt</span>(req.params.id));
+  <span class="kw">if</span> (!student) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">404</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: <span class="str">'Student not found'</span> });
+  res.<span class="fn">json</span>({ success: <span class="kw">true</span>, data: student });
+});
+
+<span class="cm">// POST /api/students — Create student</span>
+app.<span class="fn">post</span>(<span class="str">'/api/students'</span>, (req, res) => {
+  <span class="kw">const</span> { name, course, semester, marks, email } = req.body;
+  <span class="kw">if</span> (!name || !email) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">400</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: <span class="str">'Name and email required'</span> });
+  <span class="kw">const</span> newStudent = { id: Date.<span class="fn">now</span>(), name, course, semester, marks, email };
+  students.<span class="fn">push</span>(newStudent);
+  res.<span class="fn">status</span>(<span class="num">201</span>).<span class="fn">json</span>({ success: <span class="kw">true</span>, data: newStudent });
+});
+
+<span class="cm">// PUT /api/students/:id — Update student</span>
+app.<span class="fn">put</span>(<span class="str">'/api/students/:id'</span>, (req, res) => {
+  <span class="kw">const</span> idx = students.<span class="fn">findIndex</span>(s => s.id === <span class="fn">parseInt</span>(req.params.id));
+  <span class="kw">if</span> (idx === -<span class="num">1</span>) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">404</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: <span class="str">'Student not found'</span> });
+  students[idx] = { ...students[idx], ...req.body };
+  res.<span class="fn">json</span>({ success: <span class="kw">true</span>, data: students[idx] });
+});
+
+<span class="cm">// DELETE /api/students/:id — Delete student</span>
+app.<span class="fn">delete</span>(<span class="str">'/api/students/:id'</span>, (req, res) => {
+  <span class="kw">const</span> idx = students.<span class="fn">findIndex</span>(s => s.id === <span class="fn">parseInt</span>(req.params.id));
+  <span class="kw">if</span> (idx === -<span class="num">1</span>) <span class="kw">return</span> res.<span class="fn">status</span>(<span class="num">404</span>).<span class="fn">json</span>({ success: <span class="kw">false</span>, message: <span class="str">'Student not found'</span> });
+  <span class="kw">const</span> deleted = students.<span class="fn">splice</span>(idx, <span class="num">1</span>)[<span class="num">0</span>];
+  res.<span class="fn">json</span>({ success: <span class="kw">true</span>, message: <span class="str">'Student deleted'</span>, data: deleted });
+});
+
+app.<span class="fn">listen</span>(PORT, () => console.<span class="fn">log</span>(<span class="str">`Server running on http://localhost:${PORT}`</span>));</pre>
+  </div>
+</div>
+
+<footer>
+  <a href="../index.html">← Back to Dashboard</a> &mdash;
+  Practical 5: Node.js &amp; Express REST API | Harsh Pansuriya
+</footer>
+
+<script>
+  let students = [
+    { id:1, name:'Harsh Pansuriya', course:'Computer Engg.', semester:5, marks:92, email:'harsh@example.com' },
+    { id:2, name:'Riya Sharma', course:'Computer Engg.', semester:5, marks:85, email:'riya@example.com' },
+    { id:3, name:'Arjun Patel', course:'Information Tech.', semester:5, marks:78, email:'arjun@example.com' },
+    { id:4, name:'Priya Desai', course:'Electronics', semester:3, marks:71, email:'priya@example.com' },
+    { id:5, name:'Karan Shah', course:'Computer Engg.', semester:7, marks:88, email:'karan@example.com' },
+  ];
+
+  function resetData() {
+    students = [
+      { id:1, name:'Harsh Pansuriya', course:'Computer Engg.', semester:5, marks:92, email:'harsh@example.com' },
+      { id:2, name:'Riya Sharma', course:'Computer Engg.', semester:5, marks:85, email:'riya@example.com' },
+      { id:3, name:'Arjun Patel', course:'Information Tech.', semester:5, marks:78, email:'arjun@example.com' },
+      { id:4, name:'Priya Desai', course:'Electronics', semester:3, marks:71, email:'priya@example.com' },
+      { id:5, name:'Karan Shah', course:'Computer Engg.', semester:7, marks:88, email:'karan@example.com' },
+    ];
+    document.getElementById('student-count').textContent = students.length;
+  }
+
+  function selectEndpoint(method, url, body, label) {
+    document.getElementById('reqMethod').value = method;
+    document.getElementById('reqUrl').value = url;
+    document.getElementById('req-label').textContent = method + ' ' + url;
+    const bodySection = document.getElementById('body-section');
+    if (body) {
+      bodySection.style.display = 'block';
+      document.getElementById('reqBody').value = body.replace(/&quot;/g, '"');
+    } else {
+      bodySection.style.display = 'none';
+    }
+    document.querySelectorAll('.endpoint-item').forEach(el => el.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+
+  document.getElementById('reqMethod').addEventListener('change', function() {
+    const bs = document.getElementById('body-section');
+    bs.style.display = ['POST','PUT','PATCH'].includes(this.value) ? 'block' : 'none';
+  });
+
+  async function sendRequest() {
+    const method = document.getElementById('reqMethod').value;
+    const url = document.getElementById('reqUrl').value.trim();
+    const bodyText = document.getElementById('reqBody').value.trim();
+    const start = Date.now();
+
+    await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+
+    let status, statusText, response;
+
+    try {
+      const idMatch = url.match(/\/api\/students\/(\d+)/);
+      const id = idMatch ? parseInt(idMatch[1]) : null;
+
+      if (method === 'GET' && url === '/api/students') {
+        status = 200; statusText = 'OK';
+        response = { success: true, count: students.length, data: students };
+      } else if (method === 'GET' && id !== null) {
+        const s = students.find(x => x.id === id);
+        if (s) { status = 200; statusText = 'OK'; response = { success: true, data: s }; }
+        else { status = 404; statusText = 'Not Found'; response = { success: false, message: 'Student not found with id: ' + id }; }
+      } else if (method === 'POST' && url === '/api/students') {
+        const body = JSON.parse(bodyText);
+        if (!body.name || !body.email) {
+          status = 400; statusText = 'Bad Request'; response = { success: false, message: 'Name and email are required' };
+        } else {
+          const ns = { id: Date.now(), ...body };
+          students.push(ns);
+          document.getElementById('student-count').textContent = students.length;
+          status = 201; statusText = 'Created'; response = { success: true, message: 'Student created', data: ns };
+        }
+      } else if (method === 'PUT' && id !== null) {
+        const idx = students.findIndex(x => x.id === id);
+        if (idx === -1) { status = 404; statusText = 'Not Found'; response = { success: false, message: 'Student not found' }; }
+        else {
+          const body = JSON.parse(bodyText);
+          students[idx] = { ...students[idx], ...body };
+          status = 200; statusText = 'OK'; response = { success: true, message: 'Student updated', data: students[idx] };
+        }
+      } else if (method === 'DELETE' && id !== null) {
+        const idx = students.findIndex(x => x.id === id);
+        if (idx === -1) { status = 404; statusText = 'Not Found'; response = { success: false, message: 'Student not found' }; }
+        else {
+          const deleted = students.splice(idx, 1)[0];
+          document.getElementById('student-count').textContent = students.length;
+          status = 200; statusText = 'OK'; response = { success: true, message: 'Student deleted successfully', data: deleted };
+        }
+      } else {
+        status = 404; statusText = 'Not Found'; response = { success: false, message: 'Route not found: ' + method + ' ' + url };
+      }
+    } catch (e) {
+      status = 400; statusText = 'Bad Request'; response = { success: false, message: 'Invalid JSON body: ' + e.message };
+    }
+
+    const elapsed = Date.now() - start;
+    const rh = document.getElementById('resp-header');
+    rh.style.display = 'flex';
+    const sc = document.getElementById('resp-status');
+    sc.textContent = status;
+    sc.className = 'status-code ' + (status < 300 ? 's-2xx' : 's-4xx');
+    document.getElementById('resp-status-text').textContent = statusText;
+    document.getElementById('resp-time').textContent = elapsed + ' ms';
+
+    const rb = document.getElementById('resp-body');
+    rb.style.color = status < 300 ? '#4ade80' : '#f87171';
+    rb.textContent = JSON.stringify(response, null, 2);
+  }
+</script>
+</body>
+</html>

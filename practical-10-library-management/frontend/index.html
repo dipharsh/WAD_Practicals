@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical 10 - Library Management System</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --primary: #10b981; --bg: #0f172a; --bg2: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    .top-bar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 5%; display: flex; align-items: center; justify-content: space-between; }
+    .top-bar a { color: var(--primary); text-decoration: none; font-size: 0.9rem; }
+    #root { min-height: 80vh; }
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 20px 5%; text-align: center; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--primary); text-decoration: none; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="../index.html">← Dashboard</a>
+  <span style="color:var(--muted);font-size:0.85rem;">Practical 10 — Library Management System (Mini Project)</span>
+</div>
+
+<div id="root"></div>
+
+<footer>
+  <a href="../index.html">← Back to Dashboard</a> &mdash;
+  Practical 10: Library Management System | Harsh Pansuriya &mdash; Web Application Development
+</footer>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useReducer, useCallback } = React;
+
+// ─── INITIAL DATA ─────────────────────────────────────────────────
+const INIT_BOOKS = [
+  { id:'B001', title:'Introduction to Algorithms', author:'Thomas H. Cormen', category:'Computer Science', isbn:'978-0262046305', quantity:5, available:3 },
+  { id:'B002', title:'Clean Code', author:'Robert C. Martin', category:'Programming', isbn:'978-0132350884', quantity:4, available:4 },
+  { id:'B003', title:'JavaScript: The Good Parts', author:'Douglas Crockford', category:'Web Development', isbn:'978-0596517748', quantity:3, available:2 },
+  { id:'B004', title:'Design Patterns', author:'Gang of Four', category:'Software Engineering', isbn:'978-0201633610', quantity:2, available:1 },
+  { id:'B005', title:'The Pragmatic Programmer', author:'David Thomas', category:'Programming', isbn:'978-0201616224', quantity:3, available:3 },
+  { id:'B006', title:'Database System Concepts', author:'Abraham Silberschatz', category:'Database', isbn:'978-0073523323', quantity:4, available:2 },
+  { id:'B007', title:'Operating System Concepts', author:'Abraham Silberschatz', category:'Systems', isbn:'978-1119800361', quantity:3, available:3 },
+  { id:'B008', title:'Computer Networks', author:'Andrew S. Tanenbaum', category:'Networking', isbn:'978-0132126953', quantity:2, available:0 },
+];
+const INIT_MEMBERS = [
+  { id:'M001', name:'Harsh Pansuriya', email:'harsh@example.com', phone:'9876543210', course:'Computer Engineering' },
+  { id:'M002', name:'Riya Sharma',     email:'riya@example.com',  phone:'9876543211', course:'Computer Engineering' },
+  { id:'M003', name:'Arjun Patel',     email:'arjun@example.com', phone:'9876543212', course:'Information Technology' },
+  { id:'M004', name:'Priya Desai',     email:'priya@example.com', phone:'9876543213', course:'Electronics' },
+];
+const INIT_ISSUES = [
+  { id:'I001', bookId:'B001', memberId:'M002', bookTitle:'Introduction to Algorithms', memberName:'Riya Sharma', issueDate:'2026-09-20', dueDate:'2026-10-04', returnDate:null, status:'issued' },
+  { id:'I002', bookId:'B003', memberId:'M001', bookTitle:'JavaScript: The Good Parts', memberName:'Harsh Pansuriya', issueDate:'2026-09-15', dueDate:'2026-09-29', returnDate:'2026-09-28', status:'returned' },
+  { id:'I003', bookId:'B006', memberId:'M003', bookTitle:'Database System Concepts', memberName:'Arjun Patel', issueDate:'2026-09-25', dueDate:'2026-10-09', returnDate:null, status:'issued' },
+  { id:'I004', bookId:'B008', memberId:'M004', bookTitle:'Computer Networks', memberName:'Priya Desai', issueDate:'2026-09-10', dueDate:'2026-09-24', returnDate:null, status:'overdue' },
+];
+
+// ─── STYLES ───────────────────────────────────────────────────────
+const C = {
+  card: { background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', padding:'24px', marginBottom:'20px' },
+  inp: { width:'100%', background:'#0f172a', border:'1px solid #334155', borderRadius:'8px', padding:'10px 14px', color:'#e2e8f0', fontSize:'0.875rem', outline:'none', fontFamily:'inherit' },
+  lbl: { display:'block', fontSize:'0.8rem', color:'#94a3b8', marginBottom:'6px' },
+  btn: (from,to) => ({ background:`linear-gradient(135deg,${from},${to})`, color:'#fff', border:'none', padding:'10px 20px', borderRadius:'8px', cursor:'pointer', fontWeight:600, fontSize:'0.875rem', transition:'opacity 0.2s' }),
+  ghost: { background:'#0f172a', border:'1px solid #334155', color:'#e2e8f0', padding:'9px 16px', borderRadius:'8px', cursor:'pointer', fontSize:'0.875rem' },
+};
+
+// ─── TOAST HOOK ───────────────────────────────────────────────────
+function useToast() {
+  const [toast, setToast] = useState(null);
+  const show = useCallback((msg, ok=true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 3200);
+  }, []);
+  return [toast, show];
+}
+
+// ─── MODAL WRAPPER ────────────────────────────────────────────────
+function Modal({ open, onClose, title, children }) {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'16px', padding:'28px', width:'100%', maxWidth:'500px', maxHeight:'90vh', overflowY:'auto', animation:'fadeIn 0.25s ease' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'20px' }}>
+          <h3 style={{ fontSize:'1.1rem' }}>{title}</h3>
+          <button onClick={onClose} style={{ background:'none', border:'none', color:'#94a3b8', fontSize:'1.2rem', cursor:'pointer' }}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── NAVBAR ───────────────────────────────────────────────────────
+function Navbar({ active, setActive }) {
+  const tabs = [
+    { id:'dashboard', label:'📊 Dashboard' },
+    { id:'books', label:'📚 Books' },
+    { id:'members', label:'👥 Members' },
+    { id:'issue', label:'📤 Issue Book' },
+    { id:'return', label:'📥 Return Book' },
+    { id:'records', label:'📋 Records' },
+  ];
+  return (
+    <nav style={{ background:'#1e293b', borderBottom:'1px solid #334155', padding:'0 5%', display:'flex', alignItems:'center', gap:'4px', overflowX:'auto', height:'56px' }}>
+      <span style={{ fontSize:'1.1rem', fontWeight:800, color:'#10b981', marginRight:'16px', whiteSpace:'nowrap' }}>📚 LibraryMS</span>
+      {tabs.map(t => (
+        <button key={t.id} onClick={() => setActive(t.id)}
+          style={{ background: active===t.id ? 'rgba(16,185,129,0.15)' : 'none', border: active===t.id ? '1px solid rgba(16,185,129,0.4)' : '1px solid transparent', color: active===t.id ? '#34d399' : '#94a3b8', padding:'6px 14px', borderRadius:'8px', cursor:'pointer', fontSize:'0.82rem', fontWeight:600, whiteSpace:'nowrap', transition:'all 0.15s' }}>
+          {t.label}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────
+function Dashboard({ books, members, issues }) {
+  const stats = useMemo(() => ({
+    totalBooks: books.reduce((a,b)=>a+b.quantity,0),
+    available: books.reduce((a,b)=>a+b.available,0),
+    issued: issues.filter(i=>i.status==='issued').length,
+    overdue: issues.filter(i=>i.status==='overdue').length,
+    totalMembers: members.length,
+    returned: issues.filter(i=>i.status==='returned').length,
+  }), [books, members, issues]);
+
+  const byCategory = useMemo(() => {
+    const m = {};
+    books.forEach(b => m[b.category] = (m[b.category]||0)+1);
+    return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  }, [books]);
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'1200px', margin:'0 auto' }}>
+      <h2 style={{ fontSize:'1.5rem', marginBottom:'24px', fontWeight:800 }}>📊 Library Dashboard</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:'16px', marginBottom:'32px' }}>
+        {[
+          { label:'Total Books', value:stats.totalBooks, color:'#10b981', icon:'📚', bg:'rgba(16,185,129,0.1)' },
+          { label:'Available Books', value:stats.available, color:'#38bdf8', icon:'✅', bg:'rgba(56,189,248,0.1)' },
+          { label:'Books Issued', value:stats.issued, color:'#fbbf24', icon:'📤', bg:'rgba(251,191,36,0.1)' },
+          { label:'Overdue Books', value:stats.overdue, color:'#f87171', icon:'⚠️', bg:'rgba(248,113,113,0.1)' },
+          { label:'Total Members', value:stats.totalMembers, color:'#a78bfa', icon:'👥', bg:'rgba(167,139,250,0.1)' },
+          { label:'Books Returned', value:stats.returned, color:'#34d399', icon:'📥', bg:'rgba(52,211,153,0.1)' },
+        ].map(s => (
+          <div key={s.label} style={{ background:s.bg, border:`1px solid ${s.color}33`, borderRadius:'14px', padding:'22px', textAlign:'center', animation:'fadeIn 0.3s ease' }}>
+            <div style={{ fontSize:'2rem', marginBottom:'8px' }}>{s.icon}</div>
+            <div style={{ fontSize:'2rem', fontWeight:900, color:s.color }}>{s.value}</div>
+            <div style={{ fontSize:'0.78rem', color:'#94a3b8', marginTop:'4px' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px' }}>
+        <div style={C.card}>
+          <h3 style={{ fontSize:'1rem', marginBottom:'16px', color:'#10b981' }}>Books by Category</h3>
+          {byCategory.map(([cat,count]) => (
+            <div key={cat} style={{ marginBottom:'12px' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'5px', fontSize:'0.85rem' }}>
+                <span>{cat}</span><span style={{ color:'#10b981', fontWeight:700 }}>{count}</span>
+              </div>
+              <div style={{ height:'6px', background:'#334155', borderRadius:'3px', overflow:'hidden' }}>
+                <div style={{ height:'100%', background:'linear-gradient(90deg,#10b981,#059669)', borderRadius:'3px', width:`${(count/books.length*100)}%`, transition:'width 0.6s' }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={C.card}>
+          <h3 style={{ fontSize:'1rem', marginBottom:'16px', color:'#10b981' }}>Recent Issue Records</h3>
+          {issues.slice(0,4).map(iss => (
+            <div key={iss.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'10px 0', borderBottom:'1px solid rgba(51,65,85,0.4)' }}>
+              <div style={{ fontSize:'1.2rem' }}>{iss.status==='returned'?'📥':iss.status==='overdue'?'⚠️':'📤'}</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:'0.85rem', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{iss.bookTitle}</div>
+                <div style={{ fontSize:'0.75rem', color:'#94a3b8' }}>{iss.memberName}</div>
+              </div>
+              <span style={{ fontSize:'0.72rem', padding:'2px 8px', borderRadius:'5px', fontWeight:700,
+                background: iss.status==='returned'?'rgba(52,211,153,0.1)':iss.status==='overdue'?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.1)',
+                color: iss.status==='returned'?'#34d399':iss.status==='overdue'?'#f87171':'#fbbf24'
+              }}>{iss.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── BOOKS ────────────────────────────────────────────────────────
+function Books({ books, setBooks, showToast }) {
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ id:'', title:'', author:'', category:'Computer Science', isbn:'', quantity:1, available:1 });
+
+  const categories = [...new Set(books.map(b=>b.category))];
+  const filtered = useMemo(() => books.filter(b => {
+    const q = search.toLowerCase();
+    return (!q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || b.isbn.includes(q))
+      && (!catFilter || b.category === catFilter);
+  }), [books, search, catFilter]);
+
+  const openAdd = () => { setEditing(null); setForm({ id:'B'+Date.now(), title:'', author:'', category:'Computer Science', isbn:'', quantity:1, available:1 }); setShowForm(true); };
+  const openEdit = (b) => { setEditing(b); setForm({ ...b }); setShowForm(true); };
+
+  const handleSave = () => {
+    if (!form.title.trim() || !form.author.trim()) return;
+    if (editing) {
+      setBooks(prev => prev.map(b => b.id===editing.id ? { ...form, quantity:parseInt(form.quantity), available:parseInt(form.available) } : b));
+      showToast('Book updated!');
+    } else {
+      setBooks(prev => [{ ...form, quantity:parseInt(form.quantity), available:parseInt(form.available) }, ...prev]);
+      showToast('Book added!');
+    }
+    setShowForm(false);
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm('Delete this book?')) return;
+    setBooks(prev => prev.filter(b => b.id !== id));
+    showToast('Book deleted.');
+  };
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'1200px', margin:'0 auto' }}>
+      <div style={{ display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap', marginBottom:'20px' }}>
+        <h2 style={{ fontSize:'1.4rem', flex:1 }}>📚 Books ({filtered.length})</h2>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'#1e293b', border:'1px solid #334155', borderRadius:'8px', padding:'8px 14px' }}>
+          <span style={{ color:'#94a3b8' }}>🔍</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search title, author, ISBN..." style={{ background:'none', border:'none', color:'#e2e8f0', fontSize:'0.875rem', outline:'none', width:'200px' }} />
+        </div>
+        <select value={catFilter} onChange={e=>setCatFilter(e.target.value)} style={{ ...C.inp, width:'auto', padding:'8px 14px' }}>
+          <option value="">All Categories</option>
+          {categories.map(c=><option key={c}>{c}</option>)}
+        </select>
+        <button onClick={openAdd} style={C.btn('#10b981','#059669')}>+ Add Book</button>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:'16px' }}>
+        {filtered.map((b,i) => (
+          <div key={b.id} style={{ ...C.card, marginBottom:0, animation:`fadeIn 0.3s ease ${i*0.04}s both`, transition:'transform 0.2s, border-color 0.2s' }}
+            onMouseEnter={e=>{ e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.borderColor='#10b981'; }}
+            onMouseLeave={e=>{ e.currentTarget.style.transform=''; e.currentTarget.style.borderColor='#334155'; }}>
+            <div style={{ display:'flex', gap:'10px', marginBottom:'12px' }}>
+              <div style={{ fontSize:'2rem' }}>📗</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:'0.95rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{b.title}</div>
+                <div style={{ color:'#94a3b8', fontSize:'0.8rem' }}>{b.author}</div>
+              </div>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px', marginBottom:'14px' }}>
+              {[['Category',b.category],['ISBN',b.isbn],['Quantity',b.quantity],['Available',b.available]].map(([k,v])=>(
+                <div key={k} style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:'7px', padding:'8px 10px' }}>
+                  <div style={{ fontSize:'0.7rem', color:'#94a3b8' }}>{k}</div>
+                  <div style={{ fontSize:'0.85rem', fontWeight:600, color: k==='Available'?(b.available>0?'#34d399':'#f87171'):'#e2e8f0' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button onClick={()=>openEdit(b)} style={{ flex:1, background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#fbbf24', padding:'6px', borderRadius:'7px', cursor:'pointer', fontSize:'0.8rem' }}>✏️ Edit</button>
+              <button onClick={()=>handleDelete(b.id)} style={{ flex:1, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#f87171', padding:'6px', borderRadius:'7px', cursor:'pointer', fontSize:'0.8rem' }}>🗑️ Delete</button>
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && <div style={{ gridColumn:'1/-1', textAlign:'center', padding:'60px', color:'#94a3b8' }}>No books found.</div>}
+      </div>
+
+      <Modal open={showForm} onClose={()=>setShowForm(false)} title={editing ? 'Edit Book' : 'Add New Book'}>
+        {[['title','Book Title *','text','Introduction to Algorithms'],['author','Author *','text','Author Name'],['isbn','ISBN','text','978-0000000000']].map(([key,lbl,type,ph])=>(
+          <div key={key} style={{ marginBottom:'14px' }}>
+            <label style={C.lbl}>{lbl}</label>
+            <input type={type} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={C.inp} />
+          </div>
+        ))}
+        <div style={{ marginBottom:'14px' }}>
+          <label style={C.lbl}>Category</label>
+          <select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={C.inp}>
+            {['Computer Science','Programming','Web Development','Software Engineering','Database','Systems','Networking','Mathematics'].map(c=><option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'20px' }}>
+          <div><label style={C.lbl}>Total Quantity</label><input type="number" min={1} value={form.quantity} onChange={e=>setForm(f=>({...f,quantity:e.target.value}))} style={C.inp} /></div>
+          <div><label style={C.lbl}>Available Copies</label><input type="number" min={0} value={form.available} onChange={e=>setForm(f=>({...f,available:e.target.value}))} style={C.inp} /></div>
+        </div>
+        <div style={{ display:'flex', gap:'10px' }}>
+          <button onClick={handleSave} style={{ ...C.btn('#10b981','#059669'), flex:1 }}>Save Book</button>
+          <button onClick={()=>setShowForm(false)} style={C.ghost}>Cancel</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ─── MEMBERS ──────────────────────────────────────────────────────
+function Members({ members, setMembers, showToast }) {
+  const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ id:'', name:'', email:'', phone:'', course:'Computer Engineering' });
+
+  const filtered = useMemo(() => members.filter(m => {
+    const q = search.toLowerCase();
+    return !q || m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q) || m.course.toLowerCase().includes(q);
+  }), [members, search]);
+
+  const openAdd = () => { setEditing(null); setForm({ id:'M'+Date.now(), name:'', email:'', phone:'', course:'Computer Engineering' }); setShowForm(true); };
+  const openEdit = (m) => { setEditing(m); setForm({ ...m }); setShowForm(true); };
+
+  const handleSave = () => {
+    if (!form.name.trim() || !form.email.trim()) return;
+    if (editing) {
+      setMembers(prev => prev.map(m => m.id===editing.id ? form : m));
+      showToast('Member updated!');
+    } else {
+      setMembers(prev => [form, ...prev]);
+      showToast('Member added!');
+    }
+    setShowForm(false);
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm('Delete this member?')) return;
+    setMembers(prev => prev.filter(m => m.id !== id));
+    showToast('Member deleted.');
+  };
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'1000px', margin:'0 auto' }}>
+      <div style={{ display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap', marginBottom:'20px' }}>
+        <h2 style={{ fontSize:'1.4rem', flex:1 }}>👥 Members ({filtered.length})</h2>
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', background:'#1e293b', border:'1px solid #334155', borderRadius:'8px', padding:'8px 14px' }}>
+          <span style={{ color:'#94a3b8' }}>🔍</span>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search members..." style={{ background:'none', border:'none', color:'#e2e8f0', fontSize:'0.875rem', outline:'none', width:'180px' }} />
+        </div>
+        <button onClick={openAdd} style={C.btn('#a855f7','#7c3aed')}>+ Add Member</button>
+      </div>
+
+      <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', overflow:'hidden' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead>
+            <tr style={{ background:'#0f172a' }}>
+              {['Member ID','Name','Email','Phone','Course','Actions'].map(h=>(
+                <th key={h} style={{ padding:'12px 16px', textAlign:'left', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px', color:'#94a3b8', borderBottom:'1px solid #334155' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={6} style={{ textAlign:'center', padding:'50px', color:'#94a3b8' }}>No members found.</td></tr>
+            ) : filtered.map(m => (
+              <tr key={m.id} style={{ borderBottom:'1px solid rgba(51,65,85,0.4)' }}>
+                <td style={{ padding:'12px 16px', fontFamily:'monospace', fontSize:'0.8rem', color:'#a78bfa' }}>{m.id}</td>
+                <td style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:'10px' }}>
+                  <div style={{ width:'32px', height:'32px', borderRadius:'50%', background:'linear-gradient(135deg,#a855f7,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:'0.85rem', flexShrink:0 }}>{m.name.charAt(0)}</div>
+                  {m.name}
+                </td>
+                <td style={{ padding:'12px 16px', color:'#94a3b8', fontSize:'0.85rem' }}>{m.email}</td>
+                <td style={{ padding:'12px 16px', fontSize:'0.85rem' }}>{m.phone}</td>
+                <td style={{ padding:'12px 16px', fontSize:'0.85rem' }}>{m.course}</td>
+                <td style={{ padding:'12px 16px' }}>
+                  <div style={{ display:'flex', gap:'6px' }}>
+                    <button onClick={()=>openEdit(m)} style={{ background:'rgba(245,158,11,0.1)', border:'1px solid rgba(245,158,11,0.3)', color:'#fbbf24', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.78rem' }}>Edit</button>
+                    <button onClick={()=>handleDelete(m.id)} style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#f87171', padding:'4px 10px', borderRadius:'6px', cursor:'pointer', fontSize:'0.78rem' }}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal open={showForm} onClose={()=>setShowForm(false)} title={editing ? 'Edit Member' : 'Add New Member'}>
+        {[['name','Full Name *','text','Harsh Pansuriya'],['email','Email *','email','harsh@example.com'],['phone','Phone','tel','9876543210']].map(([key,lbl,type,ph])=>(
+          <div key={key} style={{ marginBottom:'14px' }}>
+            <label style={C.lbl}>{lbl}</label>
+            <input type={type} value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={C.inp} />
+          </div>
+        ))}
+        <div style={{ marginBottom:'20px' }}>
+          <label style={C.lbl}>Course</label>
+          <select value={form.course} onChange={e=>setForm(f=>({...f,course:e.target.value}))} style={C.inp}>
+            {['Computer Engineering','Information Technology','Electronics','Mechanical Engineering','Civil Engineering'].map(c=><option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <div style={{ display:'flex', gap:'10px' }}>
+          <button onClick={handleSave} style={{ ...C.btn('#a855f7','#7c3aed'), flex:1 }}>Save Member</button>
+          <button onClick={()=>setShowForm(false)} style={C.ghost}>Cancel</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ─── ISSUE BOOK ───────────────────────────────────────────────────
+function IssueBook({ books, setBooks, members, issues, setIssues, showToast }) {
+  const [form, setForm] = useState({ memberId:'', bookId:'', issueDate: new Date().toISOString().split('T')[0], dueDate:'' });
+  const [error, setError] = useState('');
+
+  const availableBooks = books.filter(b => b.available > 0);
+
+  const handleIssue = () => {
+    setError('');
+    if (!form.memberId || !form.bookId || !form.dueDate) { setError('Please fill in all fields.'); return; }
+
+    const book = books.find(b => b.id === form.bookId);
+    const member = members.find(m => m.id === form.memberId);
+
+    const alreadyIssued = issues.find(i => i.bookId === form.bookId && i.memberId === form.memberId && i.status === 'issued');
+    if (alreadyIssued) { setError('This member already has this book issued.'); return; }
+
+    const newIssue = {
+      id: 'I' + Date.now(),
+      bookId: form.bookId,
+      memberId: form.memberId,
+      bookTitle: book.title,
+      memberName: member.name,
+      issueDate: form.issueDate,
+      dueDate: form.dueDate,
+      returnDate: null,
+      status: 'issued',
+    };
+
+    setIssues(prev => [newIssue, ...prev]);
+    setBooks(prev => prev.map(b => b.id === form.bookId ? { ...b, available: b.available - 1 } : b));
+    setForm({ memberId:'', bookId:'', issueDate: new Date().toISOString().split('T')[0], dueDate:'' });
+    showToast(`📤 "${book.title}" issued to ${member.name}!`);
+  };
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'600px', margin:'0 auto' }}>
+      <h2 style={{ fontSize:'1.4rem', marginBottom:'24px' }}>📤 Issue Book</h2>
+      <div style={C.card}>
+        <div style={{ marginBottom:'16px' }}>
+          <label style={C.lbl}>Select Member *</label>
+          <select value={form.memberId} onChange={e=>setForm(f=>({...f,memberId:e.target.value}))} style={C.inp}>
+            <option value="">-- Choose Member --</option>
+            {members.map(m=><option key={m.id} value={m.id}>{m.id} — {m.name} ({m.course})</option>)}
+          </select>
+        </div>
+        <div style={{ marginBottom:'16px' }}>
+          <label style={C.lbl}>Select Book * <span style={{ color:'#34d399', fontSize:'0.75rem' }}>({availableBooks.length} available)</span></label>
+          <select value={form.bookId} onChange={e=>setForm(f=>({...f,bookId:e.target.value}))} style={C.inp}>
+            <option value="">-- Choose Book --</option>
+            {availableBooks.map(b=><option key={b.id} value={b.id}>{b.id} — {b.title} (Avail: {b.available})</option>)}
+          </select>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'14px', marginBottom:'20px' }}>
+          <div>
+            <label style={C.lbl}>Issue Date</label>
+            <input type="date" value={form.issueDate} onChange={e=>setForm(f=>({...f,issueDate:e.target.value}))} style={C.inp} />
+          </div>
+          <div>
+            <label style={C.lbl}>Due Date *</label>
+            <input type="date" value={form.dueDate} onChange={e=>setForm(f=>({...f,dueDate:e.target.value}))} style={C.inp} min={form.issueDate} />
+          </div>
+        </div>
+        {error && <div style={{ background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', color:'#f87171', padding:'10px 14px', borderRadius:'8px', marginBottom:'14px', fontSize:'0.85rem' }}>{error}</div>}
+        <button onClick={handleIssue} style={{ ...C.btn('#f59e0b','#d97706'), width:'100%', padding:'12px' }}>📤 Issue Book</button>
+      </div>
+
+      {form.memberId && form.bookId && (() => {
+        const m = members.find(x=>x.id===form.memberId);
+        const b = books.find(x=>x.id===form.bookId);
+        if (!m || !b) return null;
+        return (
+          <div style={{ background:'rgba(16,185,129,0.08)', border:'1px solid rgba(16,185,129,0.3)', borderRadius:'12px', padding:'20px' }}>
+            <h4 style={{ color:'#34d399', marginBottom:'12px', fontSize:'0.95rem' }}>Preview Issue Record</h4>
+            {[['Member', m.name + ' (' + m.id + ')'], ['Book', b.title], ['Available After Issue', (b.available-1)+' copies']].map(([k,v])=>(
+              <div key={k} style={{ display:'flex', gap:'10px', fontSize:'0.85rem', padding:'6px 0', borderBottom:'1px solid rgba(51,65,85,0.3)' }}>
+                <span style={{ color:'#94a3b8', width:'120px', flexShrink:0 }}>{k}</span>
+                <span>{v}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── RETURN BOOK ──────────────────────────────────────────────────
+function ReturnBook({ books, setBooks, issues, setIssues, showToast }) {
+  const [selectedId, setSelectedId] = useState('');
+  const [returnDate, setReturnDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const activeIssues = issues.filter(i => i.status === 'issued' || i.status === 'overdue');
+
+  const handleReturn = () => {
+    if (!selectedId) return;
+    const issue = issues.find(i => i.id === selectedId);
+    setIssues(prev => prev.map(i => i.id === selectedId ? { ...i, returnDate, status:'returned' } : i));
+    setBooks(prev => prev.map(b => b.id === issue.bookId ? { ...b, available: b.available + 1 } : b));
+    setSelectedId('');
+    showToast(`📥 "${issue.bookTitle}" returned by ${issue.memberName}!`);
+  };
+
+  const selected = issues.find(i => i.id === selectedId);
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'600px', margin:'0 auto' }}>
+      <h2 style={{ fontSize:'1.4rem', marginBottom:'24px' }}>📥 Return Book</h2>
+      <div style={C.card}>
+        <div style={{ marginBottom:'16px' }}>
+          <label style={C.lbl}>Select Issue Record * <span style={{ color:'#fbbf24', fontSize:'0.75rem' }}>({activeIssues.length} active)</span></label>
+          <select value={selectedId} onChange={e=>setSelectedId(e.target.value)} style={C.inp}>
+            <option value="">-- Choose Issue Record --</option>
+            {activeIssues.map(i=>(
+              <option key={i.id} value={i.id}>{i.id} — {i.bookTitle} / {i.memberName} (Due: {i.dueDate})</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <label style={C.lbl}>Return Date</label>
+          <input type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)} style={C.inp} />
+        </div>
+        {selected && (
+          <div style={{ background:'rgba(251,191,36,0.08)', border:'1px solid rgba(251,191,36,0.3)', borderRadius:'10px', padding:'16px', marginBottom:'16px' }}>
+            {[['Issue ID',selected.id],['Book',selected.bookTitle],['Member',selected.memberName],['Issue Date',selected.issueDate],['Due Date',selected.dueDate],['Status',selected.status]].map(([k,v])=>(
+              <div key={k} style={{ display:'flex', gap:'10px', fontSize:'0.82rem', padding:'5px 0', borderBottom:'1px solid rgba(51,65,85,0.3)' }}>
+                <span style={{ color:'#94a3b8', width:'90px', flexShrink:0 }}>{k}</span>
+                <span style={{ color: k==='Status'?(v==='overdue'?'#f87171':'#fbbf24'):'#e2e8f0', fontWeight: k==='Status'?700:400 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {activeIssues.length === 0 && <div style={{ textAlign:'center', padding:'20px', color:'#94a3b8', fontSize:'0.9rem' }}>No active issue records.</div>}
+        <button onClick={handleReturn} disabled={!selectedId} style={{ ...C.btn('#10b981','#059669'), width:'100%', padding:'12px', opacity:selectedId?1:0.5 }}>📥 Return Book</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── RECORDS ──────────────────────────────────────────────────────
+function Records({ issues }) {
+  const [filter, setFilter] = useState('all');
+  const filtered = filter === 'all' ? issues : issues.filter(i => i.status === filter);
+
+  return (
+    <div style={{ padding:'32px 5%', maxWidth:'1100px', margin:'0 auto' }}>
+      <div style={{ display:'flex', gap:'12px', alignItems:'center', flexWrap:'wrap', marginBottom:'20px' }}>
+        <h2 style={{ fontSize:'1.4rem', flex:1 }}>📋 Issue Records ({filtered.length})</h2>
+        <div style={{ display:'flex', gap:'6px' }}>
+          {['all','issued','returned','overdue'].map(s=>(
+            <button key={s} onClick={()=>setFilter(s)}
+              style={{ background: filter===s?'rgba(16,185,129,0.15)':'#1e293b', border: filter===s?'1px solid rgba(16,185,129,0.4)':'1px solid #334155', color: filter===s?'#34d399':'#94a3b8', padding:'6px 14px', borderRadius:'8px', cursor:'pointer', fontSize:'0.8rem', fontWeight:600, textTransform:'capitalize' }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ background:'#1e293b', border:'1px solid #334155', borderRadius:'14px', overflow:'hidden' }}>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+            <thead>
+              <tr style={{ background:'#0f172a' }}>
+                {['Issue ID','Book','Member','Issue Date','Due Date','Return Date','Status'].map(h=>(
+                  <th key={h} style={{ padding:'11px 14px', textAlign:'left', fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:'1px', color:'#94a3b8', borderBottom:'1px solid #334155', whiteSpace:'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={7} style={{ textAlign:'center', padding:'50px', color:'#94a3b8' }}>No records.</td></tr>
+              ) : filtered.map(iss => (
+                <tr key={iss.id} style={{ borderBottom:'1px solid rgba(51,65,85,0.4)' }}>
+                  <td style={{ padding:'11px 14px', fontFamily:'monospace', fontSize:'0.78rem', color:'#a78bfa' }}>{iss.id}</td>
+                  <td style={{ padding:'11px 14px', fontSize:'0.85rem', maxWidth:'180px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{iss.bookTitle}</td>
+                  <td style={{ padding:'11px 14px', fontSize:'0.85rem' }}>{iss.memberName}</td>
+                  <td style={{ padding:'11px 14px', fontSize:'0.82rem', color:'#94a3b8' }}>{iss.issueDate}</td>
+                  <td style={{ padding:'11px 14px', fontSize:'0.82rem', color: iss.status==='overdue'?'#f87171':'#94a3b8' }}>{iss.dueDate}</td>
+                  <td style={{ padding:'11px 14px', fontSize:'0.82rem', color:'#34d399' }}>{iss.returnDate || '—'}</td>
+                  <td style={{ padding:'11px 14px' }}>
+                    <span style={{ padding:'3px 10px', borderRadius:'6px', fontSize:'0.75rem', fontWeight:700,
+                      background: iss.status==='returned'?'rgba(52,211,153,0.1)':iss.status==='overdue'?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.1)',
+                      color: iss.status==='returned'?'#34d399':iss.status==='overdue'?'#f87171':'#fbbf24'
+                    }}>{iss.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROOT APP ──────────────────────────────────────────────────────
+function App() {
+  const [active, setActive] = useState('dashboard');
+  const [books, setBooks] = useState(INIT_BOOKS);
+  const [members, setMembers] = useState(INIT_MEMBERS);
+  const [issues, setIssues] = useState(INIT_ISSUES);
+  const [toast, showToast] = useToast();
+
+  return (
+    <>
+      <Navbar active={active} setActive={setActive} />
+
+      {active==='dashboard' && <Dashboard books={books} members={members} issues={issues} />}
+      {active==='books'     && <Books books={books} setBooks={setBooks} showToast={showToast} />}
+      {active==='members'   && <Members members={members} setMembers={setMembers} showToast={showToast} />}
+      {active==='issue'     && <IssueBook books={books} setBooks={setBooks} members={members} issues={issues} setIssues={setIssues} showToast={showToast} />}
+      {active==='return'    && <ReturnBook books={books} setBooks={setBooks} issues={issues} setIssues={setIssues} showToast={showToast} />}
+      {active==='records'   && <Records issues={issues} />}
+
+      {toast && (
+        <div style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:2000, background:'#1e293b', border:`1px solid ${toast.ok?'rgba(16,185,129,0.5)':'rgba(239,68,68,0.5)'}`, borderRadius:'12px', padding:'14px 20px', maxWidth:'320px', animation:'fadeIn 0.3s ease', display:'flex', gap:'10px', alignItems:'center' }}>
+          <span style={{ fontSize:'1.1rem' }}>{toast.ok ? '✅' : '❌'}</span>
+          <span style={{ fontSize:'0.9rem' }}>{toast.msg}</span>
+        </div>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

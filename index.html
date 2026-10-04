@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Development Practicals - Harsh Pansuriya</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #6d28d9 100%);
+      padding: 60px 20px 40px;
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      padding: 6px 18px;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    header h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 10px; }
+    header h1 span { color: #a5b4fc; }
+    header p { color: #c7d2fe; font-size: 1.1rem; max-width: 600px; margin: 0 auto 20px; }
+    .header-meta { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; margin-top: 20px; }
+    .header-meta span {
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      padding: 30px 20px;
+      background: #1e293b;
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-item .num { font-size: 2rem; font-weight: 800; color: #818cf8; }
+    .stat-item .label { font-size: 0.85rem; color: #94a3b8; margin-top: 4px; }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 50px 20px; }
+    .section-title { text-align: center; margin-bottom: 40px; }
+    .section-title h2 { font-size: 1.8rem; color: #f1f5f9; margin-bottom: 8px; }
+    .section-title p { color: #94a3b8; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 28px;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .card:hover { transform: translateY(-4px); border-color: #6366f1; box-shadow: 0 20px 40px rgba(99,102,241,0.15); }
+
+    .card-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+    }
+    .card h3 { font-size: 1.15rem; color: #f1f5f9; margin-bottom: 8px; }
+    .card p { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; margin-bottom: 16px; }
+
+    .tech-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .tech-tag {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    .card-btn:hover { opacity: 0.85; }
+
+    .c1::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+    .c2::before { background: linear-gradient(90deg, #06b6d4, #0ea5e9); }
+    .c3::before { background: linear-gradient(90deg, #f59e0b, #f97316); }
+    .c4::before { background: linear-gradient(90deg, #10b981, #059669); }
+    .c5::before { background: linear-gradient(90deg, #84cc16, #22c55e); }
+    .c6::before { background: linear-gradient(90deg, #f43f5e, #e11d48); }
+    .c7::before { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+    .c8::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+    .c9::before { background: linear-gradient(90deg, #f97316, #ef4444); }
+    .c10::before { background: linear-gradient(90deg, #10b981, #6366f1); }
+
+    .n1 { background: #1e1b4b; color: #818cf8; }
+    .n2 { background: #0c4a6e; color: #38bdf8; }
+    .n3 { background: #451a03; color: #fbbf24; }
+    .n4 { background: #064e3b; color: #34d399; }
+    .n5 { background: #1a2e05; color: #86efac; }
+    .n6 { background: #4c0519; color: #fb7185; }
+    .n7 { background: #3b0764; color: #c084fc; }
+    .n8 { background: #0c4a6e; color: #7dd3fc; }
+    .n9 { background: #431407; color: #fb923c; }
+    .n10 { background: #052e16; color: #4ade80; }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      background: #1e293b;
+      border-top: 1px solid #334155;
+      color: #64748b;
+      margin-top: 60px;
+    }
+    footer span { color: #818cf8; }
+
+    @media (max-width: 640px) {
+      header h1 { font-size: 1.8rem; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">&#127891; Computer Engineering &mdash; SEM 5</div>
+  <h1>Web Development <span>Practicals</span></h1>
+  <p>A complete collection of 10 hands-on practicals covering modern full-stack web development</p>
+  <div class="header-meta">
+    <span>&#128100; Harsh Pansuriya</span>
+    <span>&#128218; Web Application Development</span>
+    <span>&#127979; B.E. Computer Engineering</span>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat-item"><div class="num">10</div><div class="label">Practicals</div></div>
+  <div class="stat-item"><div class="num">5+</div><div class="label">Technologies</div></div>
+  <div class="stat-item"><div class="num">1</div><div class="label">Mini Project</div></div>
+  <div class="stat-item"><div class="num">Full</div><div class="label">Stack Coverage</div></div>
+</div>
+
+<main>
+  <div class="section-title">
+    <h2>All Practicals</h2>
+    <p>Click "Open Practical" to launch each practical demonstration</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="card c1">
+      <div class="card-num n1">01</div>
+      <h3>Responsive Portfolio</h3>
+      <p>Design a responsive personal portfolio webpage for Harsh Pansuriya using HTML5 and CSS3 with modern layout techniques.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">HTML5</span>
+        <span class="tech-tag">CSS3</span>
+        <span class="tech-tag">Flexbox</span>
+        <span class="tech-tag">Grid</span>
+        <span class="tech-tag">Responsive</span>
+      </div>
+      <a href="practical-01-portfolio/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c2">
+      <div class="card-num n2">02</div>
+      <h3>Forms, Tables &amp; Media</h3>
+      <p>Implement student registration form, data table, image/audio/video elements with validation and responsive styling.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">HTML5 Forms</span>
+        <span class="tech-tag">CSS3</span>
+        <span class="tech-tag">Tables</span>
+        <span class="tech-tag">Media</span>
+        <span class="tech-tag">Validation</span>
+      </div>
+      <a href="practical-02-forms-tables-media/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c3">
+      <div class="card-num n3">03</div>
+      <h3>JavaScript DOM Manipulation</h3>
+      <p>Build an interactive Student Marks Calculator using JavaScript DOM manipulation without page reloads.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">JavaScript</span>
+        <span class="tech-tag">DOM API</span>
+        <span class="tech-tag">Events</span>
+        <span class="tech-tag">Dynamic UI</span>
+      </div>
+      <a href="practical-03-dom/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c4">
+      <div class="card-num n4">04</div>
+      <h3>Fetch API &amp; Async JS</h3>
+      <p>Demonstrate asynchronous data fetching with loading states, error handling, retry mechanism and fallback data.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">Fetch API</span>
+        <span class="tech-tag">async/await</span>
+        <span class="tech-tag">JSON</span>
+        <span class="tech-tag">Error Handling</span>
+      </div>
+      <a href="practical-04-fetch-api/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c5">
+      <div class="card-num n5">05</div>
+      <h3>Node.js &amp; Express REST API</h3>
+      <p>Create a complete REST API with GET, POST, PUT, DELETE endpoints and an in-browser API testing interface.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">Node.js</span>
+        <span class="tech-tag">Express.js</span>
+        <span class="tech-tag">REST API</span>
+        <span class="tech-tag">JSON</span>
+      </div>
+      <a href="practical-05-node-express/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c6">
+      <div class="card-num n6">06</div>
+      <h3>Database Integration</h3>
+      <p>Integrate MongoDB with Express backend. Supports mock mode when MongoDB is unavailable for demonstrations.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">MongoDB</span>
+        <span class="tech-tag">Mongoose</span>
+        <span class="tech-tag">Express</span>
+        <span class="tech-tag">CRUD</span>
+      </div>
+      <a href="practical-06-database/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c7">
+      <div class="card-num n7">07</div>
+      <h3>CRUD Operations via API</h3>
+      <p>Full Student Management interface with add, view, search, edit, delete operations connected to the REST API.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">CRUD</span>
+        <span class="tech-tag">REST API</span>
+        <span class="tech-tag">Fetch</span>
+        <span class="tech-tag">JavaScript</span>
+      </div>
+      <a href="practical-07-crud/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c8">
+      <div class="card-num n8">08</div>
+      <h3>React.js Frontend</h3>
+      <p>Build a component-based Student Management UI using React hooks: useState, useEffect, useMemo, useContext.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">React.js</span>
+        <span class="tech-tag">Hooks</span>
+        <span class="tech-tag">Components</span>
+        <span class="tech-tag">Props</span>
+      </div>
+      <a href="practical-08-react/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c9">
+      <div class="card-num n9">09</div>
+      <h3>Frontend + Backend Integration</h3>
+      <p>Connect React frontend with Node.js/Express backend. Real HTTP communication, CORS, env config, error states.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">React</span>
+        <span class="tech-tag">Node.js</span>
+        <span class="tech-tag">CORS</span>
+        <span class="tech-tag">Full Stack</span>
+      </div>
+      <a href="practical-09-integration/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+    <div class="card c10">
+      <div class="card-num n10">10</div>
+      <h3>Library Management System</h3>
+      <p>Mini Project: Complete full-stack Library Management System with books, members, issue/return, dashboard stats.</p>
+      <div class="tech-tags">
+        <span class="tech-tag">Full Stack</span>
+        <span class="tech-tag">React</span>
+        <span class="tech-tag">Express</span>
+        <span class="tech-tag">MongoDB</span>
+        <span class="tech-tag">Mini Project</span>
+      </div>
+      <a href="practical-10-library-management/frontend/index.html" class="card-btn">&#128196; Open Practical</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <p>Web Application Development &mdash; B.E. Computer Engineering &mdash; <span>Harsh Pansuriya</span></p>
+  <p style="margin-top:8px;font-size:0.8rem;">Built with HTML5, CSS3, JavaScript, React.js, Node.js, Express.js &amp; MongoDB</p>
+</footer>
+
+</body>
+</html>
